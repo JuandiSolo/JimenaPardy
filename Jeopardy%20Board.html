@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jeopardy Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0a1070;--gold:#d4a24c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{margin:0;height:100%;background:#000}
+body{display:flex;align-items:center;justify-content:center;overflow:hidden}
+.wrap{container-type:inline-size;position:relative;width:min(100vw,calc(100dvh*1536/950));aspect-ratio:1536/950;background:#000;font-family:Anton,Impact,"Arial Narrow",sans-serif}
+.screen{position:absolute;inset:1.5% 1.7% auto;height:81%;box-sizing:border-box;border:.65cqw solid #171717;background:#000;box-shadow:0 0 0 .14cqw #373737,0 .5cqw 1.2cqw #000;overflow:hidden}
+.board{width:100%;height:100%;box-sizing:border-box;padding:.5%;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(5,minmax(0,1fr));gap:1.15cqw .75cqw}
+.c{background:var(--navy);display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer}
+.h{color:#fff;font-size:2.65cqw;line-height:1.02;text-transform:uppercase;text-shadow:.2cqw .2cqw 0 #000;padding:0 .5cqw;letter-spacing:.02cqw;cursor:default}
+.h.s{font-size:2.05cqw}
+.h.t{font-size:2.6cqw}
+.h.t small{font-size:1.9cqw}
+.board.intro-hidden .h:not(.revealed){color:transparent;text-shadow:none}
+.v{color:var(--gold);font-size:5.8cqw;text-shadow:.32cqw .32cqw 0 #000;letter-spacing:-.05cqw}
+.v.k{font-size:5.2cqw}
+.c.used .v{visibility:hidden}
+.category-intro{position:absolute;inset:0;z-index:3;overflow:hidden;cursor:pointer;transition:opacity .45s ease}
+.category-intro[hidden]{display:none}
+.category-card{position:absolute;box-sizing:border-box;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:2cqw;font-size:7.5cqw;line-height:1.08;text-transform:uppercase;text-shadow:.4cqw .4cqw 0 #000;transition:left .75s cubic-bezier(.2,.7,.2,1),top .75s cubic-bezier(.2,.7,.2,1),width .75s cubic-bezier(.2,.7,.2,1),height .75s cubic-bezier(.2,.7,.2,1),font-size .75s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+.category-card.full{left:0!important;top:0!important;width:100%!important;height:100%!important;font-size:7.5cqw!important}
+.category-card small{font-size:.7em}
+.reveal{position:absolute;inset:0;z-index:2;overflow:hidden}
+.reveal[hidden]{display:none}
+.zoom-tile{position:absolute;box-sizing:border-box;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:5.8cqw;line-height:1;text-shadow:.35cqw .35cqw 0 #000;transition:left .8s cubic-bezier(.2,.7,.2,1),top .8s cubic-bezier(.2,.7,.2,1),width .8s cubic-bezier(.2,.7,.2,1),height .8s cubic-bezier(.2,.7,.2,1),font-size .8s cubic-bezier(.2,.7,.2,1),opacity .35s ease}
+.zoom-tile.expanded{left:0!important;top:0!important;width:100%!important;height:100%!important;font-size:17cqw!important}
+.question-panel{position:absolute;inset:0;box-sizing:border-box;background:var(--navy);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6cqw;opacity:0;pointer-events:none;transition:opacity .55s ease}
+.reveal.show-question .question-panel{opacity:1;pointer-events:auto}
+.reveal.show-question .zoom-tile{opacity:0}
+.question-text{font-size:4.1cqw;line-height:1.2;text-shadow:.25cqw .25cqw 0 #000;max-width:100%;overflow-wrap:anywhere}
+.question-panel{cursor:pointer}
+.scores{position:absolute;left:10%;right:10%;bottom:1.5%;height:14%;display:flex;align-items:flex-end;justify-content:center;gap:3.5cqw}
+.team{position:relative;flex:1;max-width:21cqw;height:65%;box-sizing:border-box;border:.32cqw solid #252525;background:var(--navy);display:flex;align-items:center;justify-content:center;box-shadow:.25cqw .35cqw 0 #080808}
+.team-name{position:absolute;bottom:calc(100% - .12cqw);left:12%;right:12%;height:65%;box-sizing:border-box;border:.28cqw solid #252525;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;font-size:1.8cqw;line-height:1;letter-spacing:.04cqw;text-transform:uppercase;text-shadow:.16cqw .16cqw 0 #000;white-space:nowrap;overflow:hidden;padding:0 .35cqw}
+.team-score{color:var(--gold);font-size:4.3cqw;line-height:1;text-shadow:.25cqw .25cqw 0 #000;white-space:nowrap}
+@media(max-aspect-ratio:3/4){.wrap{width:100vw}.screen{height:76%}.scores{bottom:4%;height:13%;left:3%;right:3%;gap:2cqw}.team{max-width:none}.team-name{font-size:2.5cqw}.team-score{font-size:5cqw}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="screen"><div class="board intro-hidden" id="b">
+    <div class="c h">Edible<br>Rhyme Time</div>
+    <div class="c h">Books<br>in German</div>
+    <div class="c h t">3 “T”<small>s</small></div>
+    <div class="c h">Chop Chop!</div>
+    <div class="c h s">They said it<br>wouldn’t last</div>
+  </div>
+    <div class="category-intro" id="category-intro" aria-label="Pulsa para revelar las categorías"></div>
+    <div class="reveal" id="reveal" hidden>
+      <div class="zoom-tile" id="zoom-tile"></div>
+      <div class="question-panel" id="question-panel" aria-label="Pulsa para volver al tablero">
+        <div class="question-text" id="question-text"></div>
+      </div>
+    </div>
+  </div>
+  <div class="scores" aria-label="Puntuaciones de los equipos">
+    <div class="team"><div class="team-name">Equipo 1</div><div class="team-score">0</div></div>
+    <div class="team"><div class="team-name">Equipo 2</div><div class="team-score">0</div></div>
+    <div class="team"><div class="team-name">Equipo 3</div><div class="team-score">0</div></div>
+  </div>
+</div>
+<script>
+var b=document.getElementById('b');
+var screen=document.querySelector('.screen');
+var intro=document.getElementById('category-intro');
+var headers=Array.from(b.querySelectorAll('.h'));
+var categoryIndex=-1;
+var activeCard=null;
+var introBusy=false;
+var finishTimer;
+function finishIntro(){
+  if(introBusy)return;
+  introBusy=true;
+  clearTimeout(finishTimer);
+  b.classList.remove('intro-hidden');
+  intro.style.opacity='0';
+  setTimeout(function(){intro.hidden=true;introBusy=false},470);
+}
+function advanceIntro(){
+  if(introBusy || intro.hidden)return;
+  if(categoryIndex===headers.length-1){finishIntro();return}
+  introBusy=true;
+  categoryIndex++;
+  headers[categoryIndex].classList.add('revealed');
+  var card=document.createElement('div');
+  card.className='category-card';
+  card.innerHTML=headers[categoryIndex].innerHTML;
+  intro.appendChild(card);
+  if(categoryIndex===0){
+    var headerRect=headers[0].getBoundingClientRect();
+    var introRect=intro.getBoundingClientRect();
+    card.style.left=(headerRect.left-introRect.left)+'px';
+    card.style.top=(headerRect.top-introRect.top)+'px';
+    card.style.width=headerRect.width+'px';
+    card.style.height=headerRect.height+'px';
+    card.style.fontSize='2.65cqw';
+    requestAnimationFrame(function(){requestAnimationFrame(function(){card.classList.add('full')})});
+    setTimeout(function(){activeCard=card;introBusy=false},780);
+  }else{
+    card.classList.add('full');
+    card.style.transform='translateX(100%)';
+    var oldCard=activeCard;
+    requestAnimationFrame(function(){requestAnimationFrame(function(){
+      oldCard.style.transform='translateX(-100%)';
+      card.style.transform='translateX(0)';
+    })});
+    setTimeout(function(){
+      oldCard.remove();
+      activeCard=card;
+      introBusy=false;
+      if(categoryIndex===headers.length-1)finishTimer=setTimeout(finishIntro,1500);
+    },730);
+  }
+}
+intro.onclick=advanceIntro;
+var reveal=document.getElementById('reveal');
+var zoomTile=document.getElementById('zoom-tile');
+var questionText=document.getElementById('question-text');
+// Escribe las preguntas aquí. La clave indica columna (0 a 4) y valor.
+var questions={
+  // '0-400': '¿Cuál es la respuesta a esta pregunta?'
+};
+var revealTimer;
+function openQuestion(tile,column,value){
+  if(!reveal.hidden)return;
+  tile.classList.add('used');
+  var tileRect=tile.getBoundingClientRect();
+  var screenRect=screen.getBoundingClientRect();
+  reveal.classList.remove('show-question');
+  reveal.hidden=false;
+  zoomTile.classList.remove('expanded');
+  zoomTile.textContent='$'+value;
+  zoomTile.style.left=(tileRect.left-screenRect.left)+'px';
+  zoomTile.style.top=(tileRect.top-screenRect.top)+'px';
+  zoomTile.style.width=tileRect.width+'px';
+  zoomTile.style.height=tileRect.height+'px';
+  questionText.textContent=questions[column+'-'+value] || 'Pregunta pendiente';
+  requestAnimationFrame(function(){requestAnimationFrame(function(){zoomTile.classList.add('expanded')})});
+  revealTimer=setTimeout(function(){reveal.classList.add('show-question')},850);
+}
+function closeQuestion(){
+  clearTimeout(revealTimer);
+  reveal.hidden=true;
+  reveal.classList.remove('show-question');
+  zoomTile.classList.remove('expanded');
+}
+document.getElementById('question-panel').onclick=closeQuestion;
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!reveal.hidden)closeQuestion()});
+[400,600,800,1000].forEach(function(v){
+  for(var i=0;i<5;i++){
+    var d=document.createElement('div');
+    d.className='c';
+    d.innerHTML='<span class="v'+(v===1000?' k':'')+'">$'+v+'</span>';
+    (function(column,value){d.onclick=function(){openQuestion(this,column,value)}})(i,v);
+    b.appendChild(d);
+  }
+});
+</script>
+</body>
+</html>
