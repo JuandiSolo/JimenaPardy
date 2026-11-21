@@ -29,8 +29,29 @@ function htmlMiddleware() {
   }
 }
 
+// Plugin: copiar HTMLs a raíz de dist con nombres limpios (moderador.html, tablero.html, capitan.html)
+function copyHtmlsToRoot() {
+  return {
+    name: 'copy-htmls-to-root',
+    closeBundle() {
+      const pages = ['moderador', 'tablero', 'capitan']
+      pages.forEach(page => {
+        const src = path.resolve(__dirname, 'dist', 'src', 'pages', `${page}.html`)
+        const dest = path.resolve(__dirname, 'dist', `${page}.html`)
+        if (fs.existsSync(src)) {
+          // Leer y reescribir rutas de assets para que apunten a /JeopardyEvento/assets/...
+          let html = fs.readFileSync(src, 'utf-8')
+          // Vite ya pone base en los assets, solo copiar
+          fs.writeFileSync(dest, html)
+          console.log(`Copied ${page}.html to dist root`)
+        }
+      })
+    }
+  }
+}
+
 export default defineConfig({
-  base: isProd ? '/JeopardyEvento/' : '/',
+  base: isProd ? '/JimenaPardy/' : '/',
   build: {
     outDir: 'dist',
     rollupOptions: {
@@ -48,5 +69,5 @@ export default defineConfig({
       host: 'localhost'
     }
   },
-  plugins: [htmlMiddleware()]
+  plugins: [htmlMiddleware(), copyHtmlsToRoot()]
 })
