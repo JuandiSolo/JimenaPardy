@@ -175,7 +175,7 @@ begin
   values (null, 'idle')
   returning id into new_game_id;
 
-  -- Crear 20 casillas base (5 categorías × 4 valores)
+  -- Crear 25 casillas base (5 categorías × 5 valores)
   insert into public.clues (game_id, category, column_index, value, question_text, is_daily_double)
   select
     new_game_id,
@@ -183,7 +183,7 @@ begin
     cat.col_idx,
     val.value,
     '',
-    case when val.value in (600, 800) and random() < 0.125 then true else false end
+    case when val.value in (600, 800) and random() < 0.1 then true else false end
   from (
     values
       ('Edible Rhyme Time', 0),
@@ -193,7 +193,7 @@ begin
       ('They said it would not last', 4)
   ) as cat(category, col_idx)
   cross join (
-    values (400), (600), (800), (1000)
+    values (200), (400), (600), (800), (1000)
   ) as val(value)
   on conflict do nothing;
 

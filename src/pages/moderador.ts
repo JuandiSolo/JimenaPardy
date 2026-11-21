@@ -288,7 +288,7 @@ function makeBoard() {
   })
 
   // Tiles de valores
-  const values = [400, 600, 800, 1000]
+  const values = [200, 400, 600, 800, 1000]
   values.forEach(value => {
     for (let col = 0; col < 5; col++) {
       const clue = Array.from(clues.values()).find(c => c.column_index === col && c.value === value)
@@ -327,7 +327,7 @@ function render() {
 
   // Progress
   const playedCount = Array.from(clues.values()).filter(c => c.state === 'used').length
-  progress.textContent = `${playedCount} / 20 jugadas`
+  progress.textContent = `${playedCount} / 25 jugadas`
 
   // Current question meta
   if (q) {

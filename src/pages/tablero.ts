@@ -187,7 +187,7 @@ function renderBoard() {
   const valueTiles = board.querySelectorAll('.c:not(.h)')
   valueTiles.forEach(t => t.remove())
 
-  const values = [400, 600, 800, 1000]
+  const values = [200, 400, 600, 800, 1000]
   values.forEach(value => {
     for (let col = 0; col < 5; col++) {
       const clue = Array.from(clues.values()).find(c => c.column_index === col && c.value === value)

@@ -47,7 +47,7 @@ create table public.clues (
   game_id uuid not null references public.games(id) on delete cascade,
   category text not null,
   column_index integer not null check (column_index >= 0 and column_index <= 4),
-  value integer not null check (value in (400, 600, 800, 1000)),
+  value integer not null check (value in (200, 400, 600, 800, 1000)),
   question_text text not null default '',
   is_daily_double boolean not null default false,
   state text not null default 'available', -- available, playing, used
@@ -164,7 +164,7 @@ begin
   values (auth.uid(), 'idle')
   returning id into new_game_id;
 
-  -- Crear 20 casillas base (5 categorías × 4 valores)
+  -- Crear 25 casillas base (5 categorías × 5 valores)
   insert into public.clues (game_id, category, column_index, value, question_text, is_daily_double)
   select
     new_game_id,
@@ -172,7 +172,7 @@ begin
     cat.col_idx,
     val.value,
     '',
-    case when val.value in (600, 800) and random() < 0.125 then true else false end
+    case when val.value in (600, 800) and random() < 0.1 then true else false end
   from (
     values
       ('Edible Rhyme Time', 0),
@@ -182,7 +182,7 @@ begin
       ('They said it would not last', 4)
   ) as cat(category, col_idx)
   cross join (
-    values (400), (600), (800), (1000)
+    values (200), (400), (600), (800), (1000)
   ) as val(value)
   on conflict do nothing;
 
