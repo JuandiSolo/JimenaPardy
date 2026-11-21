@@ -1284,7 +1284,35 @@ async function createNewGame() {
     }
   }
 
-  // 3. Poblar pistas con datos estáticos del JSON
+  // 3. DIAGNÓSTICO: Verificar qué pistas existen en la BD
+  console.log('=== DIAGNÓSTICO BD ===')
+  const { data: allClues, error: cluesError } = await supabase
+    .from('clues')
+    .select('column_index, value, question_text, is_daily_double')
+    .eq('game_id', gameId)
+    .order('column_index', { ascending: true })
+    .order('value', { ascending: true })
+
+  if (cluesError) {
+    console.error('Error fetching clues:', cluesError)
+  } else {
+    console.log('Pistas en BD:', allClues?.length || 0)
+    allClues?.forEach((c: any, i: number) => {
+      console.log(`  ${i+1}. col=${c.column_index} val=$${c.value} DD=${c.is_daily_double} q="${c.question_text?.substring(0,40) || '(vacía)'}"`)
+    })
+
+    // Agrupar por valor para ver qué tiers existen
+    const values = [...new Set(allClues?.map((c: any) => c.value) || [])].sort((a,b) => a-b)
+    console.log('Valores únicos en BD:', values)
+
+    if (values.length !== 5 || !values.includes(200)) {
+      console.error('❌ ESQUEMA ANTIGUO: Solo hay', values.length, 'valores, faltan $200')
+      newGameError.textContent = `❌ ESQUEMA ANTIGUO: BD tiene ${values.length} valores (${values.join(', ')}). Falta $200. Ejecuta migraciones 001_init.sql y 002_add_moderator_auth.sql ACTUALIZADAS.`
+      return
+    }
+  }
+
+  // 4. Poblar pistas con datos estáticos del JSON
   const cluesData = generateCluesForGame()
   const categories = getCategories()
   let updatedCount = 0
@@ -1324,7 +1352,7 @@ async function createNewGame() {
     return
   }
 
-  // 4. Actualizar categorías en la partida
+  // 5. Actualizar categorías en la partida
   const { error: catError } = await supabase
     .from('games')
     .update({ categories: categories })
