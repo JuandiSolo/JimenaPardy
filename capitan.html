@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1070">
+<title>JIMENAPARDY · Capitán</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0a1070;--gold:#d4a24c;--green:#42d879;--black:#070707;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--black)}
+body{font-family:Anton,Impact,"Arial Narrow",sans-serif;color:#fff}
+button,input{font:inherit}
+button{touch-action:manipulation}
+.app{position:relative;min-height:100dvh;width:100%;max-width:600px;margin:auto;background:var(--navy);border-inline:8px solid #080808;overflow:hidden}
+.app::before{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 0 2px #252525}
+.page{min-height:100dvh;padding:calc(28px + env(safe-area-inset-top)) 24px calc(28px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;text-align:center}
+.page[hidden]{display:none}
+.brand{font-size:clamp(44px,13vw,78px);line-height:1;letter-spacing:.025em;text-shadow:4px 5px 0 #000;white-space:nowrap}
+.gold-button{border:3px solid #111;background:var(--gold);color:#080808;box-shadow:5px 6px 0 #050505;text-transform:uppercase;letter-spacing:.04em;cursor:pointer}
+.gold-button:active{transform:translate(3px,3px);box-shadow:2px 3px 0 #050505}
+.gold-button:disabled{opacity:.4;cursor:not-allowed}
+.welcome{justify-content:center;gap:48px}
+.enter{min-width:180px;padding:13px 28px;font-size:26px}
+.login{justify-content:center;gap:36px}
+.login-title{font-size:clamp(38px,10vw,58px);line-height:1;text-transform:uppercase;text-shadow:3px 4px 0 #000}
+.login-form{width:min(100%,380px);display:grid;gap:18px;text-align:left}
+.field label{display:block;margin-bottom:7px;color:var(--gold);font-size:19px;letter-spacing:.04em;text-transform:uppercase}
+.field input{width:100%;height:56px;border:3px solid #080808;border-radius:0;background:#fff;color:#111;padding:0 14px;font-family:Arial,sans-serif;font-size:18px;outline:none}
+.field input:focus{border-color:var(--gold);box-shadow:0 0 0 2px #fff}
+.login-submit{margin-top:12px;padding:13px;font-size:25px}
+.error{min-height:1.3em;margin:0;color:#ffb2b2;font-family:Arial,sans-serif;font-size:15px;text-align:center}
+.game{justify-content:flex-start;gap:0}
+.team-name{width:100%;font-size:clamp(26px,7vw,42px);line-height:1.1;text-transform:uppercase;letter-spacing:.035em;text-shadow:3px 4px 0 #000;overflow-wrap:anywhere}
+.score-card{width:min(64vw,260px);min-height:90px;margin-top:26px;border:5px solid #080808;background:var(--navy);display:flex;align-items:center;justify-content:center;box-shadow:5px 6px 0 #050505;color:var(--gold);font-size:clamp(52px,15vw,80px);line-height:1}
+.buzzer-area{flex:1;width:100%;min-height:360px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px}
+.buzzer{width:min(72vw,330px,36dvh);height:min(72vw,330px,36dvh);min-width:220px;min-height:220px;border:9px solid var(--gold);border-radius:50%;background:#111b8b;color:#fff;font-size:clamp(34px,10vw,60px);letter-spacing:.03em;text-shadow:3px 4px 0 #000;box-shadow:0 0 0 7px #080808,inset 0 0 25px #070b47,8px 10px 0 #050505;cursor:pointer;transition:transform .12s ease,border-color .2s ease,box-shadow .2s ease}
+.buzzer:active{transform:scale(.96)}
+.buzzer:disabled{opacity:.5;cursor:not-allowed}
+.buzzer.sent{border-color:var(--green);box-shadow:0 0 0 7px #080808,0 0 25px var(--green),inset 0 0 25px #070b47}
+.buzzer.winner{background:#126b37;border-color:var(--green);box-shadow:0 0 0 7px #080808,0 0 35px var(--green)}
+.status{min-height:24px;margin:0;font-family:Arial,sans-serif;font-size:16px;color:#fff}
+.wager-form{width:min(100%,380px);display:grid;gap:18px;text-align:left}
+.wager-form label{display:block;margin-bottom:7px;color:var(--gold);font-size:19px;letter-spacing:.04em;text-transform:uppercase}
+.wager-form input{width:100%;height:56px;border:3px solid #080808;border-radius:0;background:#fff;color:#111;padding:0 14px;font-family:Arial,sans-serif;font-size:18px;outline:none}
+.wager-form input:focus{border-color:var(--gold);box-shadow:0 0 0 2px #fff}
+.wager-submit{margin-top:12px;padding:13px;font-size:25px}
+.wager-cap{color:var(--gold);font-size:16px;margin-top:-10px}
+@media(max-height:680px){.page{padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom))}.score-card{min-height:72px;margin-top:16px}.buzzer-area{min-height:280px;gap:14px}.buzzer{width:min(58vw,44dvh);height:min(58vw,44dvh);min-width:180px;min-height:180px}}
+</style>
+  <script type="module" crossorigin src="/JimenaPardy/assets/capitan-A3Vt9T5S.js"></script>
+  <link rel="modulepreload" crossorigin href="/JimenaPardy/assets/supabase-Bdl5uQBP.js">
+</head>
+<body>
+<main class="app">
+  <section class="page welcome" id="welcome">
+    <div class="brand">JIMENAPARDY</div>
+    <button class="gold-button enter" id="enter" type="button">Entrar</button>
+  </section>
+
+  <section class="page login" id="login" hidden>
+    <div class="login-title">Identificarse</div>
+    <form class="login-form" id="login-form">
+      <div class="field">
+        <label for="team-name-input">Nombre del equipo</label>
+        <input id="team-name-input" name="teamName" autocomplete="off" required maxlength="24" placeholder="Ej. Los Tigres">
+      </div>
+      <div class="field">
+        <label for="team-password">Clave del equipo</label>
+        <input id="team-password" name="password" type="password" autocomplete="off" required maxlength="64" placeholder="Clave compartida">
+      </div>
+      <button class="gold-button login-submit" type="submit">Entrar a la partida</button>
+      <p class="error" id="login-error" role="alert"></p>
+    </form>
+  </section>
+
+  <section class="page game" id="game" hidden>
+    <div class="team-name" id="team-name">EQUIPO</div>
+    <div class="score-card" id="team-score" aria-label="Puntos del equipo">0</div>
+    <div class="buzzer-area">
+      <button class="buzzer" id="buzzer" type="button" aria-label="Presionar buzzer">BUZZER</button>
+      <p class="status" id="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="page wager" id="wager-page" hidden>
+    <div class="team-name" id="wager-team-name">APUESTA DAILY DOUBLE</div>
+    <form class="wager-form" id="wager-form">
+      <div class="field">
+        <label for="wager-input">Tu apuesta</label>
+        <input id="wager-input" name="wager" type="number" min="0" step="1" inputmode="numeric" required>
+        <p class="wager-cap" id="wager-cap">Máximo: $0</p>
+      </div>
+      <button class="gold-button wager-submit" type="submit">Confirmar apuesta</button>
+      <p class="error" id="wager-error" role="alert"></p>
+    </form>
+  </section>
+
+  <section class="page replace-confirm" id="replace-confirm" hidden>
+    <div class="login-title">Otro dispositivo activo</div>
+    <p style="max-width:380px;margin:24px auto;line-height:1.5;color:#fff">Ya hay un celular conectado con esta cuenta. ¿Seguro que quieres continuar? Se cerrará la sesión del otro celular.</p>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:24px">
+      <button class="gold-button" id="confirm-replace" type="button" style="min-width:160px">Continuar</button>
+      <button class="gold-button" id="cancel-replace" type="button" style="min-width:160px;background:#8d2531;border-color:#f06b77">Cancelar</button>
+    </div>
+  </section>
+</main>
+</body>
+</html>
