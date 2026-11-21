@@ -359,11 +359,19 @@ async function handleBuzz() {
   const result = data as any
   if (!result.success) {
     if (result.early) {
-      statusText.textContent = result.error || 'El moderador no ha terminado de hablar'
+      // Penalidad local: 2 segundos sin poder buzzear
+      statusText.textContent = '⚠️ Muy temprano: penalizado 2s'
+      buzzer.disabled = true
+      buzzer.textContent = 'ESPERA...'
+      setTimeout(() => {
+        if (buzzer.disabled && currentPhase === 'blocked') {
+          resetBuzzerUI()
+        }
+      }, 2000)
     } else {
       statusText.textContent = result.error || 'No se pudo pulsar'
+      resetBuzzerUI()
     }
-    resetBuzzerUI()
     return
   }
 
