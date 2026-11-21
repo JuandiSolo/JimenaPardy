@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase.js'
 import { renderQuestionContent, getClueContent } from '../lib/questionContent.js'
+import { getCategories } from '../lib/staticQuestions.js'
 
 // Estado local derivado de Supabase Realtime
 let gameId: string | null = null
@@ -57,13 +58,8 @@ async function loadInitialState() {
   if (error) throw error
 
   const state = data as any
-  categories = (state.game as any).categories || [
-    'Edible Rhyme Time',
-    'Books in German',
-    '3 "T"s',
-    'Chop Chop!',
-    'They said it would not last'
-  ]
+  // Usar categorías del JSON estático como fuente de verdad
+  categories = (state.game as any).categories?.length ? (state.game as any).categories : getCategories()
 
   // Procesar pistas
   ;(state.clues || []).forEach((c: any) => {
