@@ -1,5 +1,6 @@
 import { supabase, getCurrentUser, getSession } from '../lib/supabase.js'
 import { renderQuestionContent, getClueContent } from '../lib/questionContent.js'
+import { generateCluesForGame, getCategories } from '../lib/staticQuestions.js'
 
 // Elementos DOM
 const appShell = document.getElementById('app-shell') as HTMLElement
@@ -207,13 +208,8 @@ async function loadGame(id: string) {
   liveBadge.hidden = false
   subtitle.textContent = `Partida ${gameId.slice(0,8)}... — Eres el moderador`
 
-  categories = [
-    'Edible Rhyme Time',
-    'Books in German',
-    '3 "T"s',
-    'Chop Chop!',
-    'They said it would not last'
-  ]
+  // Usar categorías del JSON estático
+  categories = getCategories()
 
   ;(state.clues || []).forEach((c: any) => clues.set(c.id, c))
   ;(state.teams || []).forEach((t: any) => teams.set(t.id, t))
@@ -356,7 +352,7 @@ function render() {
         interactive: false,
       })
       questionDisplay.classList.remove('empty')
-      editQuestionBtn.disabled = false
+      editQuestionBtn.hidden = true // Preguntas vienen de JSON estático, no editables
     }
   } else {
     categoryChip.textContent = 'Sin seleccionar'
@@ -1261,8 +1257,9 @@ async function handleLogin() {
 
 async function createNewGame() {
   closeModal(newGameModal)
-  newGameError.textContent = 'Creando partida...'
+  newGameError.textContent = 'Creando partida con preguntas predefinidas...'
 
+  // 1. Crear partida vacía
   const { data: newGameId, error: createError } = await supabase.rpc('create_game')
   if (createError) {
     newGameError.textContent = 'Error: ' + createError.message
@@ -1272,7 +1269,42 @@ async function createNewGame() {
   gameId = newGameId as string
   window.history.replaceState({}, '', `?game=${gameId}`)
 
-  // Recargar estado completo
+  // 2. Poblar pistas con datos estáticos del JSON
+  const clues = generateCluesForGame()
+  const categories = getCategories()
+
+  for (const clue of clues) {
+    const { error } = await supabase
+      .from('clues')
+      .update({
+        question_text: clue.question_text,
+        is_daily_double: clue.is_daily_double,
+        content_type: clue.content_type,
+        image_path: clue.image_path,
+        image_alt: clue.image_alt
+      })
+      .eq('game_id', gameId)
+      .eq('column_index', clue.column_index)
+      .eq('value', clue.value)
+
+    if (error) {
+      console.error('Error updating clue:', clue, error)
+      newGameError.textContent = 'Error actualizando pistas: ' + error.message
+      return
+    }
+  }
+
+  // 3. Actualizar categorías en la partida
+  const { error: catError } = await supabase
+    .from('games')
+    .update({ categories: categories })
+    .eq('id', gameId)
+
+  if (catError) {
+    console.error('Error updating categories:', catError)
+  }
+
+  // 4. Recargar estado completo
   await loadGame(gameId)
 }
 

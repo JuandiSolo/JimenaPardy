@@ -1,0 +1,192 @@
+{
+  "categories": [
+    "Edible Rhyme Time",
+    "Books in German",
+    "3 \"T\"s",
+    "Chop Chop!",
+    "They said it would not last"
+  ],
+  "clues": [
+    {
+      "category": "Edible Rhyme Time",
+      "value": 200,
+      "question": "This citrus fruit shares its name with a color",
+      "answer": "Orange",
+      "content_type": "text"
+    },
+    {
+      "category": "Edible Rhyme Time",
+      "value": 400,
+      "question": "Green vegetable that sounds like a gem",
+      "answer": "Kale",
+      "content_type": "text"
+    },
+    {
+      "category": "Edible Rhyme Time",
+      "value": 600,
+      "question": "Red fruit that rhymes with 'very'",
+      "answer": "Cherry",
+      "content_type": "text"
+    },
+    {
+      "category": "Edible Rhyme Time",
+      "value": 800,
+      "question": "Nut that sounds like 'pecan' but isn't",
+      "answer": "Peanut",
+      "content_type": "text"
+    },
+    {
+      "category": "Edible Rhyme Time",
+      "value": 1000,
+      "question": "Melon that rhymes with 'antelope'",
+      "answer": "Cantaloupe",
+      "content_type": "text"
+    },
+    {
+      "category": "Books in German",
+      "value": 200,
+      "question": "\"Harry Potter und der Stein der Weisen\" - Original title?",
+      "answer": "Harry Potter and the Philosopher's Stone",
+      "content_type": "text"
+    },
+    {
+      "category": "Books in German",
+      "value": 400,
+      "question": "\"Der Herr der Ringe\" - English title?",
+      "answer": "The Lord of the Rings",
+      "content_type": "text"
+    },
+    {
+      "category": "Books in German",
+      "value": 600,
+      "question": "\"Stolz und Vorurteil\" - Jane Austen classic?",
+      "answer": "Pride and Prejudice",
+      "content_type": "text"
+    },
+    {
+      "category": "Books in German",
+      "value": 800,
+      "question": "\"1984\" auf Deutsch?",
+      "answer": "1984 (same title)",
+      "content_type": "text"
+    },
+    {
+      "category": "Books in German",
+      "value": 1000,
+      "question": "\"Die Verwandlung\" - Kafka novella?",
+      "answer": "The Metamorphosis",
+      "content_type": "text"
+    },
+    {
+      "category": "3 \"T\"s",
+      "value": 200,
+      "question": "All answers contain exactly 3 letter T's",
+      "answer": "Test pattern",
+      "content_type": "text"
+    },
+    {
+      "category": "3 \"T\"s",
+      "value": 400,
+      "question": "Capital of Japan",
+      "answer": "Tokyo",
+      "content_type": "text"
+    },
+    {
+      "category": "3 \"T\"s",
+      "value": 600,
+      "question": "Shakespeare play: \"The ... of Venice\"",
+      "answer": "Merchant",
+      "content_type": "text"
+    },
+    {
+      "category": "3 \"T\"s",
+      "value": 800,
+      "question": "Animal: striped big cat",
+      "answer": "Tiger",
+      "content_type": "text"
+    },
+    {
+      "category": "3 \"T\"s",
+      "value": 1000,
+      "question": "Element #22: strong, light metal",
+      "answer": "Titanium",
+      "content_type": "text"
+    },
+    {
+      "category": "Chop Chop!",
+      "value": 200,
+      "question": "Kitchen tool for chopping",
+      "answer": "Knife",
+      "content_type": "text"
+    },
+    {
+      "category": "Chop Chop!",
+      "value": 400,
+      "question": "Woodcutter's tool",
+      "answer": "Axe",
+      "content_type": "text"
+    },
+    {
+      "category": "Chop Chop!",
+      "value": 600,
+      "question": "Haircut: short all around",
+      "answer": "Buzz cut",
+      "content_type": "text"
+    },
+    {
+      "category": "Chop Chop!",
+      "value": 800,
+      "question": "Cooking technique: cut into small cubes",
+      "answer": "Dice",
+      "content_type": "text"
+    },
+    {
+      "category": "Chop Chop!",
+      "value": 1000,
+      "question": "Martial arts board breaking demo",
+      "answer": "Karate chop",
+      "content_type": "text"
+    },
+    {
+      "category": "They said it would not last",
+      "value": 200,
+      "question": "Beatles' first US #1 hit",
+      "answer": "I Want to Hold Your Hand",
+      "content_type": "text"
+    },
+    {
+      "category": "They said it would not last",
+      "value": 400,
+      "question": "1990s boy band: 'Quit Playing Games'",
+      "answer": "Backstreet Boys",
+      "content_type": "text"
+    },
+    {
+      "category": "They said it would not last",
+      "value": 600,
+      "question": "Social media app with 140-char limit",
+      "answer": "Twitter",
+      "content_type": "text"
+    },
+    {
+      "category": "They said it would not last",
+      "value": 800,
+      "question": "Video rental giant that refused Netflix",
+      "answer": "Blockbuster",
+      "content_type": "text"
+    },
+    {
+      "category": "They said it would not last",
+      "value": 1000,
+      "question": "1980s 'pet' that was just a rock",
+      "answer": "Pet Rock",
+      "content_type": "text"
+    }
+  ],
+  "daily_double": {
+    "category": "3 \"T\"s",
+    "value": 600,
+    "question": "Capital of Japan with exactly 3 T's",
+    "answer": "Tokyo"
+  }
+}
