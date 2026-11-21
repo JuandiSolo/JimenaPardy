@@ -62,7 +62,8 @@ async function init() {
   const saved = localStorage.getItem(`jimenapardy_team_${gameId}`)
   if (saved) {
     try {
-      const { teamId, name, password } = JSON.parse(saved)
+      const savedData = JSON.parse(saved) as { teamId: string; name: string; password: string }
+      const { name, password } = savedData
       // Validar credenciales de nuevo (rápido, sin UI)
       const { data, error } = await supabase.rpc('captain_login', {
         p_game_id: gameId!,
