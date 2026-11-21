@@ -7,7 +7,9 @@ let clues: Map<string, any> = new Map()
 let teams: Map<string, any> = new Map()
 let currentClueId: string | null = null
 let phase: string = 'idle'
+let prevPhase: string = 'idle'
 let winnerTeamId: string | null = null
+let introProgress: number = 0
 
 const board = document.getElementById('board') as HTMLElement
 const categoryIntro = document.getElementById('category-intro') as HTMLElement
@@ -102,13 +104,36 @@ function handleGameChange(payload: any) {
   if (!game) return
 
   currentClueId = game.current_clue_id
-  phase = game.phase || 'idle'
+  const newPhase = game.phase || 'idle'
   winnerTeamId = game.winner_team_id
+  introProgress = game.intro_progress || 0
 
   renderBoard()
   renderScores()
 
-  if (currentClueId && phase !== 'idle') {
+  // Detectar salida de intro → finalizar animación
+  if (prevPhase === 'intro' && newPhase !== 'intro') {
+    const finishIntro = (window as any).finishIntro
+    if (finishIntro) {
+      finishIntro()
+      for (let i = 0; i < 5; i++) {
+        const h = board.querySelector(`.h[data-col="${i}"]`)
+        if (h) {
+          h.classList.add('revealed')
+          h.style.color = ''
+          h.style.textShadow = ''
+        }
+      }
+      board.classList.remove('intro-hidden')
+    }
+  }
+
+  prevPhase = newPhase
+  phase = newPhase
+
+  if (phase === 'intro') {
+    runIntroAnimation()
+  } else if (currentClueId && phase !== 'idle') {
     showQuestion(currentClueId)
   } else {
     hideQuestion()
@@ -178,11 +203,12 @@ function renderBoard() {
 
 function renderScores() {
   scores.innerHTML = ''
-  const onlineTeams = Array.from(teams.values()).filter(t => t.active_device_token)
+  const allTeams = Array.from(teams.values())
 
-  onlineTeams.forEach(team => {
+  allTeams.forEach(team => {
     const div = document.createElement('div')
-    div.className = 'team' + (team.id === winnerTeamId ? ' winner' : '')
+    const isOnline = !!team.active_device_token
+    div.className = 'team' + (team.id === winnerTeamId ? ' winner' : '') + (isOnline ? '' : ' offline')
 
     const nameDiv = document.createElement('div')
     nameDiv.className = 'team-name'
@@ -194,16 +220,28 @@ function renderScores() {
     scoreDiv.textContent = team.score.toString()
     div.appendChild(scoreDiv)
 
+    if (!isOnline) {
+      const offlineBadge = document.createElement('span')
+      offlineBadge.className = 'offline-badge'
+      offlineBadge.textContent = 'OFFLINE'
+      offlineBadge.style.fontSize = '10px'
+      offlineBadge.style.color = '#888'
+      offlineBadge.style.marginTop = '4px'
+      offlineBadge.style.display = 'block'
+      div.appendChild(offlineBadge)
+    }
+
     scores.appendChild(div)
   })
 }
 
-// Intro animation (igual que el HTML original)
+// Intro animation - sincronizada con servidor via intro_progress
 function setupIntro() {
   const headers = Array.from(board.querySelectorAll('.h[data-col]'))
 
-  categoryIntro.onclick = advanceIntro
-  categoryIntro.ontouchstart = (e) => { e.preventDefault(); advanceIntro() }
+  // Desactivar click manual (ahora controlado por moderador)
+  categoryIntro.onclick = null
+  categoryIntro.ontouchstart = null
 
   function finishIntro() {
     if (introBusy) return
@@ -214,20 +252,19 @@ function setupIntro() {
     setTimeout(() => { categoryIntro.hidden = true; introBusy = false }, 470)
   }
 
-  function advanceIntro() {
-    if (introBusy || categoryIntro.hidden) return
-    if (categoryIndex === headers.length - 1) { finishIntro(); return }
+  function revealCategory(index: number) {
+    if (introBusy) return
+    if (index >= headers.length) { finishIntro(); return }
 
     introBusy = true
-    categoryIndex++
-    headers[categoryIndex].classList.add('revealed')
+    headers[index].classList.add('revealed')
 
     const card = document.createElement('div')
     card.className = 'category-card'
-    card.innerHTML = headers[categoryIndex].innerHTML
+    card.innerHTML = headers[index].innerHTML
     categoryIntro.appendChild(card)
 
-    if (categoryIndex === 0) {
+    if (index === 0) {
       const headerRect = headers[0].getBoundingClientRect()
       const introRect = categoryIntro.getBoundingClientRect()
       card.style.left = (headerRect.left - introRect.left) + 'px'
@@ -249,10 +286,42 @@ function setupIntro() {
         if (oldCard) oldCard.remove()
         activeCard = card
         introBusy = false
-        if (categoryIndex === headers.length - 1) finishTimer = setTimeout(finishIntro, 1500)
+        if (index === headers.length - 1) finishTimer = setTimeout(finishIntro, 1500)
       }, 730)
     }
   }
+
+  // Exponer para runIntroAnimation
+  ;(window as any).revealCategory = revealCategory
+  ;(window as any).finishIntro = finishIntro
+}
+
+// Ejecutar intro según intro_progress del servidor
+function runIntroAnimation() {
+  const revealCategory = (window as any).revealCategory
+  const finishIntro = (window as any).finishIntro
+  if (!revealCategory) return
+
+  // Revelar categorías hasta el progreso actual (siempre)
+  for (let i = 0; i < Math.min(introProgress, 5); i++) {
+    const header = board.querySelector(`.h[data-col="${i}"]`)
+    if (header && !header.classList.contains('revealed')) {
+      header.classList.add('revealed')
+    }
+  }
+
+  // Animar la categoría actual si hay progreso nuevo (1..5)
+  if (introProgress > 0 && introProgress <= 5) {
+    const currentIndex = introProgress - 1
+    const header = board.querySelector(`.h[data-col="${currentIndex}"]`)
+    if (header && !header.classList.contains('animated')) {
+      header.classList.add('animated')
+      revealCategory(currentIndex)
+    }
+  }
+
+  // NO auto-finalizar en 5. Esperar a que phase cambie (moderador selecciona casilla)
+  // Solo limpiar intro-hidden si phase ya no es 'intro' (se maneja en handleGameChange)
 }
 
 // Mostrar pregunta (animación zoom)

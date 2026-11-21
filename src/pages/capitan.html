@@ -58,17 +58,17 @@ button{touch-action:manipulation}
   </section>
 
   <section class="page login" id="login" hidden>
-    <div class="login-title">Iniciar sesión</div>
+    <div class="login-title">Identificarse</div>
     <form class="login-form" id="login-form">
       <div class="field">
-        <label for="email">Correo electrónico</label>
-        <input id="email" name="email" type="email" autocomplete="email" required maxlength="100">
+        <label for="team-name-input">Nombre del equipo</label>
+        <input id="team-name-input" name="teamName" autocomplete="off" required maxlength="24" placeholder="Ej. Los Tigres">
       </div>
       <div class="field">
-        <label for="password">Contraseña</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <label for="team-password">Clave del equipo</label>
+        <input id="team-password" name="password" type="password" autocomplete="off" required maxlength="64" placeholder="Clave compartida">
       </div>
-      <button class="gold-button login-submit" type="submit">Ingresar</button>
+      <button class="gold-button login-submit" type="submit">Entrar a la partida</button>
       <p class="error" id="login-error" role="alert"></p>
     </form>
   </section>

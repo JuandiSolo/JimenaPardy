@@ -1,6 +1,8 @@
-import { supabase, getCurrentUser } from '../lib/supabase.js'
+import { supabase, getCurrentUser, getSession } from '../lib/supabase.js'
 
 // Elementos DOM
+const appShell = document.getElementById('app-shell') as HTMLElement
+const loginPage = document.getElementById('login-page') as HTMLElement
 const board = document.getElementById('board') as HTMLElement
 const progress = document.getElementById('progress') as HTMLElement
 const boardNote = document.getElementById('board-note') as HTMLElement
@@ -18,12 +20,17 @@ const correctBtn = document.getElementById('correct') as HTMLButtonElement
 const incorrectBtn = document.getElementById('incorrect') as HTMLButtonElement
 const backBtn = document.getElementById('back') as HTMLButtonElement
 const nextBtn = document.getElementById('next') as HTMLButtonElement
+const skipBtn = document.getElementById('skip') as HTMLButtonElement
 const hint = document.getElementById('hint') as HTMLElement
 const onlineCount = document.getElementById('online-count') as HTMLElement
 const teamsContainer = document.getElementById('teams') as HTMLElement
 const liveBadge = document.getElementById('live-badge') as HTMLElement
 const subtitle = document.getElementById('subtitle') as HTMLElement
 const newGameBtn = document.getElementById('new-game') as HTMLButtonElement
+
+// Login
+const loginForm = document.getElementById('login-form') as HTMLFormElement
+const loginError = document.getElementById('login-error') as HTMLElement
 
 // Modales
 const editModal = document.getElementById('edit-modal') as HTMLElement
@@ -48,27 +55,102 @@ let phase: string = 'idle'
 let winnerTeamId: string | null = null
 let doubleTeamId: string | null = null
 let wagerAmount: number | null = null
+let introProgress: number = 0
 let scoreTeamId: string | null = null
 let isModerator = false
+let moderatorDeviceToken: string
+
+// Generar token único de dispositivo (persistente en localStorage)
+function getModeratorDeviceToken(): string {
+  let token = localStorage.getItem('jimenapardy_mod_device_token')
+  if (!token) {
+    token = 'mod_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9)
+    localStorage.setItem('jimenapardy_mod_device_token', token)
+  }
+  return token
+}
+
+moderatorDeviceToken = getModeratorDeviceToken()
+
+// Obtener gameId de URL
+function getGameIdFromUrl(): string | null {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('game')
+}
 
 // Inicializar
 async function init() {
-  // Verificar autenticación
-  const user = await getCurrentUser()
-  if (!user) {
-    document.body.innerHTML = '<div style="color:white;padding:2rem;text-align:center">Inicia sesión en Supabase Auth para acceder al panel de moderador</div>'
-    return
-  }
+  gameId = getGameIdFromUrl()
 
-  gameId = new URLSearchParams(window.location.search).get('game')
-
-  if (gameId) {
-    await loadGame(gameId)
-  } else {
-    showNewGameModal()
+  // 1. Auth anónimo (identidad de dispositivo)
+  const session = await getSession()
+  if (!session) {
+    const { error } = await supabase.auth.signInAnonymously()
+    if (error) {
+      loginError.textContent = 'Error de conexión: ' + error.message
+      return
+    }
   }
 
   setupEventListeners()
+
+  if (gameId) {
+    // Hay gameId en URL: intentar restaurar sesión o mostrar login
+    const savedMod = localStorage.getItem(`jimenapardy_moderator_${gameId}`)
+    if (savedMod) {
+      try {
+        await registerModeratorDevice()
+        await loadGame(gameId)
+        return
+      } catch { /* ignorar, volver a login */ }
+    }
+    showLogin()
+  } else {
+    // Sin gameId: mostrar login primero (pedir nombre/clave), al enviar creará la partida
+    showLogin()
+  }
+}
+
+function showLogin() {
+  loginPage.hidden = false
+  appShell.hidden = true
+  loginError.textContent = ''
+  ;(document.getElementById('mod-password') as HTMLInputElement).value = ''
+  ;(document.getElementById('mod-name') as HTMLInputElement).focus()
+}
+
+function showApp() {
+  loginPage.hidden = true
+  appShell.hidden = false
+}
+
+async function registerModeratorDevice() {
+  const { data, error } = await supabase.rpc('register_moderator_device', {
+    p_game_id: gameId!,
+    p_device_token: moderatorDeviceToken
+  })
+
+  if (error) {
+    loginError.textContent = 'Error: ' + error.message
+    return
+  }
+
+  const result = data as any
+  if (result.replaced) {
+    showReplaceConfirm()
+  } else {
+    showApp()
+  }
+}
+
+function showReplaceConfirm() {
+  loginPage.hidden = true
+  appShell.hidden = true
+  // Podríamos agregar un modal de confirmación similar a capitanes
+  // Por ahora solo mostramos mensaje en login
+  loginError.textContent = 'Otro dispositivo activo. Recarga para continuar como este moderador.'
+  loginPage.hidden = false
+  appShell.hidden = true
 }
 
 async function loadGame(id: string) {
@@ -80,9 +162,11 @@ async function loadGame(id: string) {
   const state = data as any
   const game = state.game as any
 
-  // Verificar que el usuario actual es el moderador
-  if (game.moderator_id !== (await getCurrentUser()).id) {
+  // Verificar que el usuario actual es el moderador (auth.uid() = moderator_id)
+  const user = await getCurrentUser()
+  if (game.moderator_id !== user.id) {
     alert('No eres el moderador de esta partida')
+    showLogin()
     return
   }
 
@@ -130,6 +214,7 @@ function handleGameChange(payload: any) {
   winnerTeamId = g.winner_team_id
   doubleTeamId = g.double_team_id
   wagerAmount = g.wager_amount
+  introProgress = g.intro_progress || 0
 
   render()
 }
@@ -254,10 +339,14 @@ function updateStatusBox() {
     statusBox.classList.add('ready')
     statusTitle.textContent = 'Buzzer bloqueado'
     statusSub.textContent = 'Lee la pregunta y después libera el buzzer.'
+  } else if (phase === 'intro') {
+    statusBox.classList.add('ready')
+    statusTitle.textContent = '🎬 Intro del tablero'
+    statusSub.textContent = `Revelando categoría ${introProgress}/5. Pulsa "Siguiente categoría" para continuar.`
   } else if (phase === 'chooseDouble') {
     statusBox.classList.add('ready')
     statusTitle.textContent = '★ Daily Double'
-    statusSub.textContent = 'El equipo que gane el buzzer será quien apueste. Libera el buzzer.'
+    statusSub.textContent = 'Elige el equipo que lo descubrió. Irá directo a apostar (sin buzzer).'
   } else if (phase === 'open') {
     statusBox.classList.add('ready')
     statusTitle.textContent = 'Buzzer liberado'
@@ -290,20 +379,51 @@ function updateStatusBox() {
 
 function updateControls() {
   const q = currentClueId ? clues.get(currentClueId) : null
+  const onlineTeams = Array.from(teams.values()).filter(t => t.active_device_token)
 
-  // Release
-  if (phase === 'chooseDouble') {
-    releaseBtn.textContent = 'Liberar buzzer para Daily Double'
+  const introCompleted = phase === 'intro' && introProgress === 5
+
+  // Release / Intro / Daily Double assignment
+  if (phase === 'idle' && !currentClueId && !introCompleted) {
+    // Partida recién creada: botón para iniciar intro
+    hideDDTeamSelector()
+    releaseBtn.style.display = ''
+    releaseBtn.textContent = '▶ Iniciar partida'
     releaseBtn.disabled = false
+    releaseBtn.onclick = startIntro
+  } else if (phase === 'intro') {
+    if (introProgress < 5) {
+      releaseBtn.textContent = `Siguiente categoría (${introProgress}/5)`
+      releaseBtn.disabled = false
+      releaseBtn.onclick = advanceIntro
+    } else {
+      // introProgress === 5: todas las categorías reveladas, esperar selección de casilla
+      releaseBtn.textContent = 'Comenzar: elige una casilla'
+      releaseBtn.disabled = true
+      releaseBtn.onclick = null
+    }
+  } else if (phase === 'chooseDouble') {
+    // Mostrar selector de equipos en lugar de botón simple
+    releaseBtn.style.display = 'none'
+    showDDTeamSelector(onlineTeams)
   } else if (phase === 'awaitWager') {
+    hideDDTeamSelector()
+    releaseBtn.style.display = ''
     releaseBtn.textContent = 'Abrir pantalla de apuesta'
     releaseBtn.disabled = false
+    releaseBtn.onclick = releaseBuzzer
   } else if (phase === 'blocked') {
+    hideDDTeamSelector()
+    releaseBtn.style.display = ''
     releaseBtn.textContent = 'Liberar buzzer'
     releaseBtn.disabled = false
+    releaseBtn.onclick = releaseBuzzer
   } else {
+    hideDDTeamSelector()
+    releaseBtn.style.display = ''
     releaseBtn.textContent = 'Buzzer liberado'
     releaseBtn.disabled = true
+    releaseBtn.onclick = null
   }
 
   // Correct/Incorrect
@@ -311,11 +431,80 @@ function updateControls() {
   correctBtn.disabled = !canGrade
   incorrectBtn.disabled = !canGrade
 
+  // Skip (nadie respondió) - solo cuando buzzer está libre/bloqueado y no hay ganador
+  const canSkip = phase === 'open' || phase === 'blocked' || phase === 'chooseDouble'
+  skipBtn.disabled = !canSkip
+
   // Back
   backBtn.disabled = !q || q.state === 'used'
 
   // Next
   nextBtn.disabled = !q || q.state !== 'used' || phase === 'won' || phase === 'doubleReady'
+}
+
+// Selector de equipo para Daily Double
+let ddSelectorContainer: HTMLElement | null = null
+
+function showDDTeamSelector(onlineTeams: any[]) {
+  hideDDTeamSelector()
+  const container = document.createElement('div')
+  container.id = 'dd-team-selector'
+  container.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-top:8px;'
+  container.innerHTML = '<label style="color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:.08em;">Equipo que descubrió el Daily Double:</label>'
+
+  const select = document.createElement('select')
+  select.style.cssText = 'padding:10px;background:#f7f4e9;border:2px solid #151515;color:#111;font-size:17px;'
+  select.innerHTML = '<option value="">— Selecciona equipo —</option>'
+  onlineTeams.forEach(team => {
+    const opt = document.createElement('option')
+    opt.value = team.id
+    opt.textContent = team.name
+    select.appendChild(opt)
+  })
+  container.appendChild(select)
+
+  const assignBtn = document.createElement('button')
+  assignBtn.className = 'btn primary'
+  assignBtn.textContent = 'Asignar y abrir apuesta'
+  assignBtn.style.marginTop = '8px'
+  assignBtn.addEventListener('click', () => {
+    if (!select.value) return
+    assignDailyDouble(select.value)
+  })
+  container.appendChild(assignBtn)
+
+  // Insertar después del botón release
+  releaseBtn.parentNode!.insertBefore(container, releaseBtn.nextSibling)
+  ddSelectorContainer = container
+}
+
+function hideDDTeamSelector() {
+  if (ddSelectorContainer) {
+    ddSelectorContainer.remove()
+    ddSelectorContainer = null
+  }
+  releaseBtn.style.display = ''
+}
+
+async function startIntro() {
+  const { error } = await supabase.rpc('start_intro', { p_game_id: gameId! })
+  if (error) console.error('Error:', error)
+}
+
+async function advanceIntro() {
+  console.log('advanceIntro called, current introProgress:', introProgress)
+  const { data, error } = await supabase.rpc('advance_intro', { p_game_id: gameId! })
+  console.log('advance_intro result:', data, error)
+  if (error) console.error('Error:', error)
+}
+
+async function assignDailyDouble(teamId: string) {
+  const { error } = await supabase.rpc('assign_daily_double', {
+    p_game_id: gameId!,
+    p_team_id: teamId
+  })
+  if (error) console.error('Error:', error)
+  else hideDDTeamSelector()
 }
 
 function renderTeams() {
@@ -392,14 +581,13 @@ async function selectClue(clueId: string) {
 
 async function releaseBuzzer() {
   if (phase === 'awaitWager') {
-    // El servidor maneja la apertura de apuesta en el celular del equipo
     await supabase.rpc('release_buzzer', { p_game_id: gameId! })
     return
   }
   if (phase !== 'blocked' && phase !== 'chooseDouble') return
 
   const { error } = await supabase.rpc('release_buzzer', { p_game_id: gameId! })
-  if (error) alert('Error: ' + error.message)
+  if (error) console.error('release_buzzer error:', error)
 }
 
 async function gradeAnswer(correct: boolean) {
@@ -410,7 +598,7 @@ async function gradeAnswer(correct: boolean) {
     p_correct: correct
   })
 
-  if (error) alert('Error: ' + error.message)
+  if (error) console.error('grade_answer error:', error)
 }
 
 async function goBack() {
@@ -419,7 +607,7 @@ async function goBack() {
   if (clue?.state === 'used') return
 
   const { error } = await supabase.rpc('cancel_clue', { p_game_id: gameId! })
-  if (error) alert('Error: ' + error.message)
+  if (error) console.error('Error:', error)
 }
 
 async function nextQuestion() {
@@ -429,7 +617,7 @@ async function nextQuestion() {
   if (phase === 'won' || phase === 'doubleReady') return
 
   const { error } = await supabase.rpc('next_question', { p_game_id: gameId! })
-  if (error) alert('Error: ' + error.message)
+  if (error) console.error('Error:', error)
 }
 
 async function closeQuestion() {
@@ -437,7 +625,15 @@ async function closeQuestion() {
   if (phase !== 'wrong' && phase !== 'won') return
 
   const { error } = await supabase.rpc('close_question', { p_game_id: gameId! })
-  if (error) alert('Error: ' + error.message)
+  if (error) console.error('Error:', error)
+}
+
+async function skipQuestion() {
+  if (!currentClueId) return
+  if (phase !== 'open' && phase !== 'blocked' && phase !== 'chooseDouble') return
+
+  const { error } = await supabase.rpc('skip_question', { p_game_id: gameId! })
+  if (error) console.error('Error:', error)
 }
 
 // Modales
@@ -458,7 +654,7 @@ async function saveQuestion() {
     .update({ question_text: text })
     .eq('id', currentClueId)
 
-  if (error) alert('Error: ' + error.message)
+  if (error) console.error('Error:', error)
   else closeModal(editModal)
 }
 
@@ -495,24 +691,6 @@ async function saveScore() {
   closeModal(scoreModal)
 }
 
-async function createNewGame() {
-  newGameError.textContent = ''
-  confirmNewGameBtn.disabled = true
-  confirmNewGameBtn.textContent = 'Creando...'
-
-  const { data, error } = await supabase.rpc('create_game')
-
-  if (error) {
-    newGameError.textContent = error.message
-    confirmNewGameBtn.disabled = false
-    confirmNewGameBtn.textContent = 'Crear partida'
-    return
-  }
-
-  closeModal(newGameModal)
-  window.location.search = `?game=${data}`
-}
-
 function showModal(modal: HTMLElement) {
   modal.hidden = false
   const input = modal.querySelector('input,textarea,select')
@@ -529,9 +707,16 @@ function showNewGameModal() {
 
 // Event listeners
 function setupEventListeners() {
+  // Login form
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    await handleLogin()
+  })
+
   releaseBtn.addEventListener('click', releaseBuzzer)
   correctBtn.addEventListener('click', () => gradeAnswer(true))
   incorrectBtn.addEventListener('click', () => gradeAnswer(false))
+  skipBtn.addEventListener('click', skipQuestion)
   backBtn.addEventListener('click', goBack)
   nextBtn.addEventListener('click', nextQuestion)
 
@@ -559,7 +744,91 @@ function setupEventListeners() {
     if (e.key === 'i' && (phase === 'won' || phase === 'doubleReady')) gradeAnswer(false)
     if (e.key === 'b') goBack()
     if (e.key === 'n' && phase !== 'won' && phase !== 'doubleReady') nextQuestion()
+    if (e.key === 's' && (phase === 'open' || phase === 'blocked' || phase === 'chooseDouble')) skipQuestion()
+    if (e.key === ' ' && phase === 'intro') advanceIntro()
+    if (e.key === 'Enter' && phase === 'idle' && !currentClueId) startIntro()
   })
+}
+
+async function handleLogin() {
+  const name = (document.getElementById('mod-name') as HTMLInputElement).value.trim()
+  const password = (document.getElementById('mod-password') as HTMLInputElement).value
+
+  if (!name || !password) {
+    loginError.textContent = 'Introduce nombre y contraseña.'
+    return
+  }
+
+  loginError.textContent = 'Conectando...'
+  const submitBtn = loginForm.querySelector('button[type="submit"]') as HTMLButtonElement
+  submitBtn.disabled = true
+
+  // 1. Si no hay sesión anónima, crear una
+  const session = await getSession()
+  if (!session) {
+    const { error } = await supabase.auth.signInAnonymously()
+    if (error) {
+      loginError.textContent = 'Error de conexión: ' + error.message
+      submitBtn.disabled = false
+      return
+    }
+  }
+
+  // 2. Si no hay gameId, crear la partida primero
+  if (!gameId) {
+    const { data: newGameId, error: createError } = await supabase.rpc('create_game')
+    if (createError) {
+      loginError.textContent = 'Error creando partida: ' + createError.message
+      submitBtn.disabled = false
+      return
+    }
+    gameId = newGameId as string
+    window.history.replaceState({}, '', `?game=${gameId}`)
+  }
+
+  // 3. Llamar RPC moderator_login
+  const { data, error } = await supabase.rpc('moderator_login', {
+    p_game_id: gameId!,
+    p_name: name,
+    p_password: password
+  })
+
+  submitBtn.disabled = false
+
+  if (error) {
+    loginError.textContent = 'Error: ' + error.message
+    return
+  }
+
+  const result = data as any
+  if (!result.success) {
+    loginError.textContent = result.error || 'Error desconocido'
+    return
+  }
+
+  // Guardar moderador en localStorage
+  localStorage.setItem(`jimenapardy_moderator_${gameId}`, JSON.stringify({
+    name: result.name
+  }))
+
+  await registerModeratorDevice()
+}
+
+async function createNewGame() {
+  closeModal(newGameModal)
+  newGameError.textContent = 'Creando partida...'
+
+  const { data: newGameId, error: createError } = await supabase.rpc('create_game')
+  if (createError) {
+    newGameError.textContent = 'Error: ' + createError.message
+    return
+  }
+
+  gameId = newGameId as string
+  window.history.replaceState({}, '', `?game=${gameId}`)
+
+  // Recargar estado completo
+  await loadGame(gameId)
 }
 
 init()

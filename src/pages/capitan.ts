@@ -1,5 +1,4 @@
-import { supabase, getCurrentUser, getSession } from '../lib/supabase.js'
-import { v4 as uuidv4 } from 'https://esm.sh/uuid@9.0.0'
+import { supabase, getSession } from '../lib/supabase.js'
 
 // Elementos DOM
 const welcome = document.getElementById('welcome') as HTMLElement
@@ -24,16 +23,19 @@ let deviceToken: string
 let currentPhase: string = 'idle'
 let isWinner: boolean = false
 let wagerCap: number = 0
-let currentClue: any = null
 let buzzCooldownUntil: number = 0
 
-// Generar token único de dispositivo
-function generateDeviceToken(): string {
-  return 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9)
+// Generar token único de dispositivo (persistente en localStorage)
+function getDeviceToken(): string {
+  let token = localStorage.getItem('jimenapardy_device_token')
+  if (!token) {
+    token = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9)
+    localStorage.setItem('jimenapardy_device_token', token)
+  }
+  return token
 }
 
-deviceToken = generateDeviceToken()
-localStorage.setItem('jimenapardy_device_token', deviceToken)
+deviceToken = getDeviceToken()
 
 // Obtener gameId de URL
 function getGameIdFromUrl(): string | null {
@@ -49,61 +51,35 @@ async function init() {
     return
   }
 
-  // Verificar sesión existente
-  const session = await getSession()
-  if (session?.user) {
-    await checkTeamAndEnter(session.user.id)
+  // 1. Auth anónimo (identidad de dispositivo) - SIEMPRE nuevo al recargar
+  const { error } = await supabase.auth.signInAnonymously()
+  if (error) {
+    loginError.textContent = 'Error de conexión: ' + error.message
+    return
   }
+
+  // 2. NO auto-login: siempre mostrar pantalla de login al recargar
+  // Limpiar cualquier localStorage previo para forzar login fresco
+  localStorage.removeItem(`jimenapardy_team_${gameId}`)
 
   setupEventListeners()
   subscribeToGame()
+  showLogin()
 }
 
 function setupEventListeners() {
-  // Welcome -> Login
-  document.getElementById('enter')!.addEventListener('click', () => {
+  welcome.querySelector('#enter')!.addEventListener('click', () => {
     welcome.hidden = true
-    login.hidden = false
-    ;(document.getElementById('email') as HTMLInputElement).focus()
+    showLogin()
   })
 
-  // Login form
   document.getElementById('login-form')!.addEventListener('submit', async (e) => {
     e.preventDefault()
-    const email = (document.getElementById('email') as HTMLInputElement).value.trim()
-    const password = (document.getElementById('password') as HTMLInputElement).value
-
-    if (!email || !password) {
-      loginError.textContent = 'Escribe correo y contraseña.'
-      return
-    }
-
-    loginError.textContent = ''
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      if (error.message.includes('Email not confirmed')) {
-        loginError.textContent = 'Confirma tu correo antes de entrar. Revisa tu bandeja de entrada.'
-      } else {
-        loginError.textContent = 'Error: ' + error.message
-      }
-      return
-    }
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) await checkTeamAndEnter(user.id)
+    await handleLogin()
   })
 
-  // Registro (click largo en "Entrar" o tecla R)
-  document.getElementById('enter')!.addEventListener('contextmenu', async (e) => {
-    e.preventDefault()
-    await registerNewCaptain()
-  })
-
-  // Buzzer
   buzzer.addEventListener('click', handleBuzz)
 
-  // Teclas: Espacio/Enter para buzzer, Escape para cerrar apuesta
   document.addEventListener('keydown', (e) => {
     if ((e.key === ' ' || e.key === 'Enter') && !game.hidden && !buzzer.disabled) {
       e.preventDefault()
@@ -114,115 +90,78 @@ function setupEventListeners() {
     }
   })
 
-  // Wager form
   document.getElementById('wager-form')!.addEventListener('submit', async (e) => {
     e.preventDefault()
     await confirmWager()
   })
 
-  // Replace confirm
-  document.getElementById('confirm-replace')!.addEventListener('click', async () => {
-    await confirmReplaceDevice(true)
+  document.getElementById('confirm-replace')!.addEventListener('click', () => confirmReplaceDevice(true))
+  document.getElementById('cancel-replace')!.addEventListener('click', () => confirmReplaceDevice(false))
+}
+
+async function handleLogin() {
+  const teamName = (document.getElementById('team-name-input') as HTMLInputElement).value.trim()
+  const password = (document.getElementById('team-password') as HTMLInputElement).value
+
+  if (!teamName || !password) {
+    loginError.textContent = 'Escribe nombre y clave del equipo.'
+    return
+  }
+
+  loginError.textContent = 'Conectando...'
+  ;(document.getElementById('login-form')!.querySelector('button') as HTMLButtonElement).disabled = true
+
+  const { data, error } = await supabase.rpc('captain_login', {
+    p_game_id: gameId!,
+    p_name: teamName,
+    p_password: password
   })
-  document.getElementById('cancel-replace')!.addEventListener('click', () => {
-    confirmReplaceDevice(false)
-  })
-}
 
-async function registerNewCaptain() {
-  const email = prompt('Correo electrónico para registrar nuevo capitán:')
-  if (!email) return
-
-  const password = prompt('Contraseña (mín. 6 caracteres):')
-  if (!password || password.length < 6) {
-    alert('Contraseña muy corta')
-    return
-  }
-
-  const teamName = prompt('Nombre del equipo (máx. 24 chars):')
-  if (!teamName) return
-
-  const { data, error } = await supabase.auth.signUp({ email, password })
-  if (error) {
-    alert('Error en registro: ' + error.message)
-    return
-  }
-
-  if (data.user && !data.session) {
-    alert('Registro exitoso. Revisa tu correo para confirmar la cuenta antes de entrar.')
-    return
-  }
-
-  if (data.user) {
-    await joinGameAsCaptain(data.user.id, teamName)
-  }
-}
-
-async function checkTeamAndEnter(userId: string) {
-  // Buscar si ya es capitán de esta partida
-  const { data: teams } = await supabase
-    .from('teams')
-    .select('*')
-    .eq('game_id', gameId!)
-    .eq('auth_user_id', userId)
-    .single()
-
-  if (teams) {
-    teamId = teams.id
-    teamNameEl.textContent = teams.name.toUpperCase()
-    teamScoreEl.textContent = teams.score.toString()
-    await registerDevice()
-    enterGame()
-  } else {
-    // Preguntar si quiere unirse como nuevo capitán
-    const join = confirm('No eres capitán de esta partida. ¿Quieres unirte como nuevo equipo?')
-    if (join) {
-      const teamName = prompt('Nombre del equipo:')
-      if (teamName) {
-        await joinGameAsCaptain(userId, teamName)
-      }
-    } else {
-      await supabase.auth.signOut()
-      showLogin()
-    }
-  }
-}
-
-async function joinGameAsCaptain(userId: string, teamName: string) {
-  const { data, error } = await supabase
-    .from('teams')
-    .insert({ game_id: gameId!, auth_user_id: userId, name: teamName.slice(0, 24) })
-    .select()
-    .single()
+  ;(document.getElementById('login-form')!.querySelector('button') as HTMLButtonElement).disabled = false
 
   if (error) {
-    if (error.code === '23505') {
-      alert('Ya existe un equipo con este usuario en la partida')
-    } else if (error.message.includes('check constraint')) {
-      alert('Máximo 5 equipos por partida')
-    } else {
-      alert('Error: ' + error.message)
-    }
+    loginError.textContent = 'Error: ' + error.message
+    console.error('captain_login error:', error)
     return
   }
 
-  teamId = data.id
-  teamNameEl.textContent = data.name.toUpperCase()
-  teamScoreEl.textContent = '0'
+  const result = data as any
+  console.log('captain_login result:', result)  // DEBUG
+  if (!result.success) {
+    loginError.textContent = result.error || 'Error desconocido'
+    return
+  }
+
+  // Guardar equipo en localStorage
+  teamId = result.team_id
+  localStorage.setItem(`jimenapardy_team_${gameId}`, JSON.stringify({
+    teamId: result.team_id,
+    name: result.name,
+    score: result.score
+  }))
+
+  teamNameEl.textContent = result.name.toUpperCase()
+  teamScoreEl.textContent = result.score.toString()
+
+  console.log('Calling registerDevice with teamId:', teamId)  // DEBUG
   await registerDevice()
-  enterGame()
 }
 
 async function registerDevice() {
   const { data, error } = await supabase.rpc('register_device', {
     p_game_id: gameId!,
+    p_team_id: teamId!,
     p_device_token: deviceToken
   })
 
-  if (error) throw error
+  if (error) {
+    loginError.textContent = 'Error: ' + error.message
+    return
+  }
 
-  if (data.replaced) {
-    // Mostrar confirmación de reemplazo
+  const result = data as any
+  console.log('register_device result:', result)  // DEBUG
+  if (result.replaced) {
     showReplaceConfirm()
   } else {
     enterGame()
@@ -239,10 +178,11 @@ function showReplaceConfirm() {
 async function confirmReplaceDevice(confirmed: boolean) {
   replaceConfirm.hidden = true
   if (confirmed) {
-    // El RPC ya invalidó el dispositivo anterior, solo entrar
     enterGame()
   } else {
-    // Volver a login
+    // Cerrar sesión anónima y volver a login
+    await supabase.auth.signOut()
+    localStorage.removeItem(`jimenapardy_team_${gameId}`)
     showLogin()
   }
 }
@@ -253,16 +193,33 @@ function showLogin() {
   game.hidden = true
   wagerPage.hidden = true
   replaceConfirm.hidden = true
-  ;(document.getElementById('password') as HTMLInputElement).value = ''
+  loginError.textContent = ''
+  ;(document.getElementById('team-password') as HTMLInputElement).value = ''
+  ;(document.getElementById('team-name-input') as HTMLInputElement).focus()
 }
 
-function enterGame() {
+async function enterGame() {
   welcome.hidden = true
   login.hidden = true
   game.hidden = false
   wagerPage.hidden = true
   replaceConfirm.hidden = true
   resetBuzzerUI()
+
+  // Obtener estado inicial de la partida (fase actual, etc.)
+  await fetchInitialGameState()
+}
+
+async function fetchInitialGameState() {
+  const { data, error } = await supabase.rpc('get_game_state', { p_game_id: gameId! })
+  if (error) {
+    console.error('Error fetching initial game state:', error)
+    return
+  }
+  const state = data as any
+  if (state?.game) {
+    handleGameChange({ new: state.game })
+  }
 }
 
 function subscribeToGame() {
@@ -278,7 +235,6 @@ function handleGameChange(payload: any) {
   if (!g) return
 
   currentPhase = g.phase || 'idle'
-  currentClue = g.current_clue_id
 
   updateBuzzerState(g)
 
@@ -294,11 +250,20 @@ function handleTeamChange(payload: any) {
   if (!t || t.id !== teamId) return
 
   teamScoreEl.textContent = t.score.toString()
+  // Actualizar localStorage
+  const saved = localStorage.getItem(`jimenapardy_team_${gameId}`)
+  if (saved) {
+    const parsed = JSON.parse(saved)
+    parsed.score = t.score
+    localStorage.setItem(`jimenapardy_team_${gameId}`, JSON.stringify(parsed))
+  }
 
   if (!t.active_device_token && !game.hidden) {
-    // Dispositivo desactivado (reemplazado desde otro teléfono)
     statusText.textContent = 'Sesión cerrada desde otro dispositivo'
-    setTimeout(() => showLogin(), 2000)
+    setTimeout(() => {
+      localStorage.removeItem(`jimenapardy_team_${gameId}`)
+      showLogin()
+    }, 2000)
   }
 }
 
@@ -309,11 +274,9 @@ function updateBuzzerState(gameState: any) {
   const isOpen = gameState.phase === 'open' || isWrong
   const isBlocked = gameState.phase === 'blocked' || gameState.phase === 'chooseDouble'
 
-  // Winner
   const winnerId = isDoubleReady ? gameState.double_team_id : gameState.winner_team_id
   isWinner = winnerId === teamId
 
-  // Reset visual
   buzzer.classList.remove('sent', 'winner')
   buzzer.disabled = false
   buzzer.textContent = 'BUZZER'
@@ -347,7 +310,6 @@ function updateBuzzerState(gameState: any) {
 async function handleBuzz() {
   if (buzzer.disabled) return
 
-  // Cooldown local 100ms
   const now = Date.now()
   if (now < buzzCooldownUntil) return
   buzzCooldownUntil = now + 100
@@ -387,7 +349,6 @@ async function handleBuzz() {
 
     if (result.daily_double) {
       wagerCap = result.wager_cap
-      // El servidor cambiará a awaitWager y se mostrará via Realtime
     }
   } else {
     resetBuzzerUI()
@@ -438,7 +399,10 @@ async function confirmWager() {
   }
 
   hideWager()
-  // El servidor actualiza phase a doubleReady via Realtime
+}
+
+function closeWager() {
+  hideWager()
 }
 
 init()
