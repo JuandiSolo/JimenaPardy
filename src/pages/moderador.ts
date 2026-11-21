@@ -1287,9 +1287,10 @@ async function createNewGame() {
   // 3. Poblar pistas con datos estáticos del JSON
   const cluesData = generateCluesForGame()
   const categories = getCategories()
+  let updatedCount = 0
 
   for (const clue of cluesData) {
-    const { error } = await supabase
+    const { error, data } = await supabase
       .from('clues')
       .update({
         question_text: clue.question_text,
@@ -1301,12 +1302,26 @@ async function createNewGame() {
       .eq('game_id', gameId)
       .eq('column_index', clue.column_index)
       .eq('value', clue.value)
+      .select()
 
     if (error) {
       console.error('Error updating clue:', clue, error)
       newGameError.textContent = 'Error actualizando pistas: ' + error.message
       return
     }
+
+    if (data && data.length > 0) {
+      updatedCount++
+    } else {
+      console.warn('No rows updated for clue:', clue.category, clue.value)
+    }
+  }
+
+  console.log(`Updated ${updatedCount}/${cluesData.length} clues`)
+
+  if (updatedCount === 0) {
+    newGameError.textContent = 'ADVERTENCIA: No se actualizó ninguna pista. ¿Ejecutaste las migraciones 001 y 002 actualizadas?'
+    return
   }
 
   // 4. Actualizar categorías en la partida
