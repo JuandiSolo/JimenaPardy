@@ -850,6 +850,33 @@ begin
 end;
 $$;
 
+-- Eliminar equipo (moderador)
+create or replace function public.remove_team(p_game_id uuid, p_team_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_game public.games%rowtype;
+  v_team public.teams%rowtype;
+begin
+  select * into v_game from public.games where id = p_game_id;
+  if v_game.moderator_id != auth.uid() then
+    raise exception 'No autorizado';
+  end if;
+
+  select * into v_team from public.teams where id = p_team_id and game_id = p_game_id;
+  if not found then
+    raise exception 'Equipo no encontrado';
+  end if;
+
+  delete from public.teams where id = p_team_id;
+
+  return jsonb_build_object('success', true, 'message', 'Equipo eliminado');
+end;
+$$;
+
 -- Registrar/actualizar dispositivo activo (capitán al entrar)
 -- Acepta team_id para encontrar el equipo correcto (puede tener auth_user_id distinto)
 create or replace function public.register_device(p_game_id uuid, p_team_id uuid, p_device_token text)
@@ -956,6 +983,7 @@ grant execute on function public.next_question to authenticated;
 grant execute on function public.close_question to authenticated;
 grant execute on function public.skip_question to authenticated;
 grant execute on function public.edit_score to authenticated;
+grant execute on function public.remove_team to authenticated;
 grant execute on function public.register_device to authenticated;
 grant execute on function public.get_game_state to authenticated;
 grant execute on function public.start_intro to authenticated;

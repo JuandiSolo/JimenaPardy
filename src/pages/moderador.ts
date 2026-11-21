@@ -44,6 +44,9 @@ const saveScoreBtn = document.getElementById('save-score') as HTMLButtonElement
 const newGameModal = document.getElementById('new-game-modal') as HTMLElement
 const newGameError = document.getElementById('new-game-error') as HTMLElement
 const confirmNewGameBtn = document.getElementById('confirm-new-game') as HTMLButtonElement
+const removeTeamModal = document.getElementById('remove-team-modal') as HTMLElement
+const removeTeamNameEl = document.getElementById('remove-team-name') as HTMLElement
+const confirmRemoveTeamBtn = document.getElementById('confirm-remove-team') as HTMLButtonElement
 
 // Estado
 let gameId: string | null = null
@@ -57,6 +60,7 @@ let doubleTeamId: string | null = null
 let wagerAmount: number | null = null
 let introProgress: number = 0
 let scoreTeamId: string | null = null
+let removeTeamId: string | null = null
 let isModerator = false
 let moderatorDeviceToken: string
 
@@ -558,7 +562,16 @@ function renderTeams() {
     editBtn.textContent = 'Editar puntos'
     editBtn.addEventListener('click', () => openScoreModal(team.id, team.name, team.score))
 
+    const removeBtn = document.createElement('button')
+    removeBtn.className = 'small-btn'
+    removeBtn.type = 'button'
+    removeBtn.textContent = 'Eliminar equipo'
+    removeBtn.style.background = '#8d2531'
+    removeBtn.style.borderColor = '#f06b77'
+    removeBtn.addEventListener('click', () => openRemoveTeamModal(team.id, team.name))
+
     actions.appendChild(editBtn)
+    actions.appendChild(removeBtn)
     card.append(head, score, actions)
     teamsContainer.appendChild(card)
   })
@@ -704,6 +717,29 @@ async function saveScore() {
   closeModal(scoreModal)
 }
 
+function openRemoveTeamModal(id: string, name: string) {
+  removeTeamId = id
+  removeTeamNameEl.textContent = name
+  showModal(removeTeamModal)
+}
+
+async function confirmRemoveTeam() {
+  if (!removeTeamId || !gameId) return
+
+  const { error } = await supabase.rpc('remove_team', {
+    p_game_id: gameId!,
+    p_team_id: removeTeamId
+  })
+
+  if (error) {
+    console.error('Error removing team:', error)
+    alert('Error: ' + error.message)
+  }
+
+  closeModal(removeTeamModal)
+  removeTeamId = null
+}
+
 function showModal(modal: HTMLElement) {
   modal.hidden = false
   const input = modal.querySelector('input,textarea,select')
@@ -744,6 +780,8 @@ function setupEventListeners() {
   document.querySelectorAll('[data-close]').forEach(btn => {
     btn.addEventListener('click', () => closeModal(document.getElementById(btn.getAttribute('data-close')!)!))
   })
+
+  confirmRemoveTeamBtn.addEventListener('click', confirmRemoveTeam)
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
