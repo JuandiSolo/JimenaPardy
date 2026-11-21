@@ -1269,11 +1269,26 @@ async function createNewGame() {
   gameId = newGameId as string
   window.history.replaceState({}, '', `?game=${gameId}`)
 
-  // 2. Poblar pistas con datos estáticos del JSON
-  const clues = generateCluesForGame()
+  // 2. IMPORTANTE: Establecer moderator_id ANTES de actualizar pistas (RLS lo requiere)
+  const user = await getCurrentUser()
+  if (user) {
+    const { error: modError } = await supabase
+      .from('games')
+      .update({ moderator_id: user.id })
+      .eq('id', gameId)
+
+    if (modError) {
+      console.error('Error setting moderator_id:', modError)
+      newGameError.textContent = 'Error configurando moderador: ' + modError.message
+      return
+    }
+  }
+
+  // 3. Poblar pistas con datos estáticos del JSON
+  const cluesData = generateCluesForGame()
   const categories = getCategories()
 
-  for (const clue of clues) {
+  for (const clue of cluesData) {
     const { error } = await supabase
       .from('clues')
       .update({
@@ -1294,7 +1309,7 @@ async function createNewGame() {
     }
   }
 
-  // 3. Actualizar categorías en la partida
+  // 4. Actualizar categorías en la partida
   const { error: catError } = await supabase
     .from('games')
     .update({ categories: categories })
@@ -1304,7 +1319,7 @@ async function createNewGame() {
     console.error('Error updating categories:', catError)
   }
 
-  // 4. Recargar estado completo
+  // 5. Recargar estado completo
   await loadGame(gameId)
 }
 
