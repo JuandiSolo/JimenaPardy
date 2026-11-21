@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase.js'
+import { renderQuestionContent, getClueContent } from '../lib/questionContent.js'
 
 // Estado local derivado de Supabase Realtime
 let gameId: string | null = null
@@ -164,8 +165,20 @@ function handleClueChange(payload: any) {
   }
   renderBoard()
 
-  if (clue.id === currentClueId && phase !== 'idle') {
-    showQuestion(clue.id)
+  // Si la pista actual cambió y estamos en una fase de pregunta, actualizar display
+  if (clue.id === currentClueId && phase !== 'idle' && phase !== 'chooseDouble' && phase !== 'awaitWager') {
+    // Actualizar contenido en vivo sin re-animar si ya está visible
+    if (!reveal.hidden) {
+      const clueContent = getClueContent(clue)
+      questionText.innerHTML = renderQuestionContent(clueContent, {
+        maxWidth: '100%',
+        maxHeight: '100%',
+        showCheckerboard: false,
+        interactive: false,
+      })
+    } else {
+      showQuestion(clue.id)
+    }
   }
 }
 
@@ -325,7 +338,7 @@ function runIntroAnimation() {
   // Solo limpiar intro-hidden si phase ya no es 'intro' (se maneja en handleGameChange)
 }
 
-// Mostrar pregunta (animación zoom)
+// Mostrar pregunta (animación zoom) - soporta texto, imagen y mixto
 function showQuestion(clueId: string) {
   if (!reveal.hidden) return
 
@@ -349,7 +362,14 @@ function showQuestion(clueId: string) {
   zoomTile.style.width = tileRect.width + 'px'
   zoomTile.style.height = tileRect.height + 'px'
 
-  questionText.textContent = clue.question_text || 'Pregunta pendiente'
+  // Usar el módulo compartido para renderizar contenido (texto/imagen/mixto)
+  const clueContent = getClueContent(clue)
+  questionText.innerHTML = renderQuestionContent(clueContent, {
+    maxWidth: '100%',
+    maxHeight: '100%',
+    showCheckerboard: false,
+    interactive: false,
+  })
 
   requestAnimationFrame(() => requestAnimationFrame(() => { zoomTile.classList.add('expanded') }))
   revealTimer = setTimeout(() => { reveal.classList.add('show-question') }, 850)

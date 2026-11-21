@@ -1,4 +1,5 @@
 import { supabase, getCurrentUser, getSession } from '../lib/supabase.js'
+import { renderQuestionContent, getClueContent } from '../lib/questionContent.js'
 
 // Elementos DOM
 const appShell = document.getElementById('app-shell') as HTMLElement
@@ -48,6 +49,27 @@ const removeTeamModal = document.getElementById('remove-team-modal') as HTMLElem
 const removeTeamNameEl = document.getElementById('remove-team-name') as HTMLElement
 const confirmRemoveTeamBtn = document.getElementById('confirm-remove-team') as HTMLButtonElement
 
+// Editor de imágenes
+const contentTypeBtns = document.querySelectorAll('.content-type-btn') as NodeListOf<HTMLButtonElement>
+const contentPanels = document.querySelectorAll('.content-panel') as NodeListOf<HTMLElement>
+const imageFileInput = document.getElementById('image-file-input') as HTMLInputElement
+const imageUploadZone = document.getElementById('image-upload-zone') as HTMLElement
+const imagePreview = document.getElementById('image-preview') as HTMLElement
+const previewImg = document.getElementById('preview-img') as HTMLImageElement
+const removeImageBtn = document.getElementById('remove-image-btn') as HTMLButtonElement
+const imageUploadLoading = document.getElementById('image-upload-loading') as HTMLElement
+const imageUploadError = document.getElementById('image-upload-error') as HTMLElement
+const imageAltInput = document.getElementById('image-alt-input') as HTMLInputElement
+const mixedImageFileInput = document.getElementById('mixed-image-file-input') as HTMLInputElement
+const mixedImageUploadZone = document.getElementById('mixed-image-upload-zone') as HTMLElement
+const mixedImagePreview = document.getElementById('mixed-image-preview') as HTMLElement
+const mixedPreviewImg = document.getElementById('mixed-preview-img') as HTMLImageElement
+const mixedRemoveImageBtn = document.getElementById('mixed-remove-image-btn') as HTMLButtonElement
+const mixedImageUploadLoading = document.getElementById('mixed-image-upload-loading') as HTMLElement
+const mixedImageUploadError = document.getElementById('mixed-image-upload-error') as HTMLElement
+const mixedImageAltInput = document.getElementById('mixed-image-alt-input') as HTMLInputElement
+const mixedQuestionInput = document.getElementById('mixed-question-input') as HTMLTextAreaElement
+
 // Estado
 let gameId: string | null = null
 let categories: string[] = []
@@ -63,6 +85,13 @@ let scoreTeamId: string | null = null
 let removeTeamId: string | null = null
 let isModerator = false
 let moderatorDeviceToken: string
+
+// Editor de preguntas con imágenes
+let currentEditType: 'text' | 'image' | 'mixed' = 'text'
+let selectedImageFile: File | null = null
+let selectedMixedImageFile: File | null = null
+let isUploadingImage = false
+let currentEditingClueId: string | null = null
 
 // Generar token único de dispositivo (persistente en localStorage)
 function getModeratorDeviceToken(): string {
@@ -318,9 +347,15 @@ function render() {
       questionDisplay.classList.add('empty')
       editQuestionBtn.disabled = true
     } else {
-      const questionText = q.question_text || ''
-      questionDisplay.textContent = questionText || 'Pregunta pendiente: puedes escribirla con «Editar pregunta».'
-      questionDisplay.classList.toggle('empty', !questionText)
+      // Usar módulo compartido para renderizar vista previa (texto/imagen/mixto)
+      const clueContent = getClueContent(q)
+      questionDisplay.innerHTML = renderQuestionContent(clueContent, {
+        maxWidth: '100%',
+        maxHeight: '200px',
+        showCheckerboard: false,
+        interactive: false,
+      })
+      questionDisplay.classList.remove('empty')
       editQuestionBtn.disabled = false
     }
   } else {
@@ -663,27 +698,6 @@ async function skipQuestion() {
 }
 
 // Modales
-function openEditModal() {
-  if (!currentClueId) return
-  const clue = clues.get(currentClueId)
-  questionInput.value = clue?.question_text || ''
-  showModal(editModal)
-  questionInput.focus()
-}
-
-async function saveQuestion() {
-  if (!currentClueId) return
-  const text = questionInput.value.trim()
-
-  const { error } = await supabase
-    .from('clues')
-    .update({ question_text: text })
-    .eq('id', currentClueId)
-
-  if (error) console.error('Error:', error)
-  else closeModal(editModal)
-}
-
 function openScoreModal(id: string, name: string, score: number) {
   scoreTeamId = id
   scoreTeamName.textContent = name
@@ -740,6 +754,359 @@ async function confirmRemoveTeam() {
   removeTeamId = null
 }
 
+// ============================================
+// EDITOR DE PREGUNTAS CON IMÁGENES
+// ============================================
+
+function setContentType(type: 'text' | 'image' | 'mixed') {
+  currentEditType = type
+
+  // Actualizar botones
+  contentTypeBtns.forEach(btn => {
+    const isActive = btn.dataset.type === type
+    btn.classList.toggle('active', isActive)
+    if (isActive) {
+      btn.style.background = 'var(--gold-light)'
+      btn.style.color = '#080808'
+      btn.style.borderColor = 'var(--gold-light)'
+    } else {
+      btn.style.background = '#171e49'
+      btn.style.color = 'var(--gold-light)'
+      btn.style.borderColor = '#394785'
+    }
+  })
+
+  // Mostrar/ocultar paneles
+  contentPanels.forEach(panel => {
+    const panelType = panel.dataset.panel
+    panel.style.display = panelType === type ? 'block' : 'none'
+  })
+}
+
+function setupImageUploadZone(
+  zone: HTMLElement,
+  fileInput: HTMLInputElement,
+  handlers: { onFileSelect: (file: File) => void; onRemove: () => void }
+) {
+  // Click para abrir selector
+  zone.addEventListener('click', (e) => {
+    if (e.target === zone || e.target.classList.contains('upload-icon') ||
+        e.target.tagName === 'P' || e.target.classList.contains('placeholder')) {
+      fileInput.click()
+    }
+  })
+
+  // Drag & drop
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    zone.classList.add('dragover')
+  })
+
+  zone.addEventListener('dragleave', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    zone.classList.remove('dragover')
+  })
+
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    zone.classList.remove('dragover')
+
+    const file = e.dataTransfer.files[0]
+    if (file && file.type.startsWith('image/')) {
+      handlers.onFileSelect(file)
+    }
+  })
+
+  // Input change
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files && fileInput.files[0]) {
+      handlers.onFileSelect(fileInput.files[0])
+      fileInput.value = '' // Permitir seleccionar el mismo archivo de nuevo
+    }
+  })
+}
+
+function handleImageFileSelect(file: File, type: 'image' | 'mixed') {
+  // Validar tipo
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    showImageError(type, 'Tipo no permitido. Solo PNG, JPEG, WebP')
+    return
+  }
+
+  // Validar tamaño (5 MB)
+  if (file.size > 5 * 1024 * 1024) {
+    showImageError(type, 'Archivo muy grande. Máximo 5 MB')
+    return
+  }
+
+  // Guardar archivo
+  if (type === 'image') {
+    selectedImageFile = file
+  } else {
+    selectedMixedImageFile = file
+  }
+
+  // Mostrar preview
+  const preview = type === 'image' ? imagePreview : mixedImagePreview
+  const previewImgEl = type === 'image' ? previewImg : mixedPreviewImg
+  const uploadZone = type === 'image' ? imageUploadZone : mixedImageUploadZone
+  const errorEl = type === 'image' ? imageUploadError : mixedImageUploadError
+
+  const url = URL.createObjectURL(file)
+  previewImgEl.src = url
+  preview.style.display = 'block'
+  uploadZone.style.padding = '12px'
+  errorEl.textContent = ''
+}
+
+function handleRemoveImage(type: 'image' | 'mixed') {
+  if (type === 'image') {
+    selectedImageFile = null
+    imagePreview.style.display = 'none'
+    previewImg.src = ''
+    imageUploadZone.style.padding = '24px'
+    imageAltInput.value = ''
+    imageUploadError.textContent = ''
+  } else {
+    selectedMixedImageFile = null
+    mixedImagePreview.style.display = 'none'
+    mixedPreviewImg.src = ''
+    mixedImageUploadZone.style.padding = '24px'
+    mixedImageAltInput.value = ''
+    mixedImageUploadError.textContent = ''
+  }
+}
+
+function showImageError(type: 'image' | 'mixed', message: string) {
+  const errorEl = type === 'image' ? imageUploadError : mixedImageUploadError
+  errorEl.textContent = message
+}
+
+function setUploadingState(type: 'image' | 'mixed', uploading: boolean) {
+  isUploadingImage = uploading
+  const loadingEl = type === 'image' ? imageUploadLoading : mixedImageUploadLoading
+  const previewEl = type === 'image' ? imagePreview : mixedImagePreview
+  const fileInput = type === 'image' ? imageFileInput : mixedImageFileInput
+  const removeBtn = type === 'image' ? removeImageBtn : mixedRemoveImageBtn
+
+  loadingEl.style.display = uploading ? 'block' : 'none'
+  previewEl.style.display = uploading ? 'none' : 'block'
+  fileInput.disabled = uploading
+  removeBtn.disabled = uploading
+  saveQuestionBtn.disabled = uploading
+}
+
+// Subir imagen a Edge Function
+async function uploadImage(file: File, clueId: string): Promise<{ storagePath: string; imageUrl: string } | null> {
+  if (!gameId) return null
+
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('gameId', gameId)
+  formData.append('clueId', clueId)
+
+  // Obtener token de auth actual
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) {
+    throw new Error('No hay sesión activa')
+  }
+
+  const response = await fetch(
+    'https://wvaplnmcllwpioamgpct.supabase.co/functions/v1/upload-question-image',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: formData,
+    }
+  )
+
+  const result = await response.json()
+
+  if (!response.ok) {
+    throw new Error(result.error || 'Error subiendo imagen')
+  }
+
+  return { storagePath: result.storagePath, imageUrl: result.imageUrl }
+}
+
+// Eliminar imagen antigua via Edge Function
+async function deleteOldImage(storagePath: string) {
+  if (!gameId) return
+
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) return
+
+  try {
+    await fetch(
+      'https://wvaplnmcllwpioamgpct.supabase.co/functions/v1/delete-question-image',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ storagePath, gameId }),
+      }
+    )
+  } catch (err) {
+    console.warn('Error eliminando imagen antigua:', err)
+  }
+}
+
+// Guardar pregunta completa (texto + imagen)
+async function saveQuestion() {
+  if (!currentClueId || !gameId || !currentEditingClueId) return
+
+  saveQuestionBtn.disabled = true
+  saveQuestionBtn.textContent = 'Guardando...'
+
+  try {
+    let imagePath: string | null = null
+    let contentType: 'text' | 'image' | 'mixed' = currentEditType
+    let questionText = ''
+    let imageAlt = ''
+
+    // Preparar datos según tipo
+    switch (currentEditType) {
+      case 'text':
+        questionText = questionInput.value.trim()
+        break
+
+      case 'image':
+        if (!selectedImageFile) {
+          throw new Error('Selecciona una imagen')
+        }
+        imageAlt = imageAltInput.value.trim()
+        setUploadingState('image', true)
+        const uploadResult = await uploadImage(selectedImageFile, currentClueId)
+        if (!uploadResult) throw new Error('Error subiendo imagen')
+        imagePath = uploadResult.storagePath
+        setUploadingState('image', false)
+        break
+
+      case 'mixed':
+        if (!selectedMixedImageFile) {
+          throw new Error('Selecciona una imagen')
+        }
+        questionText = mixedQuestionInput.value.trim()
+        if (!questionText) {
+          throw new Error('Escribe el texto para imagen + texto')
+        }
+        imageAlt = mixedImageAltInput.value.trim()
+        setUploadingState('mixed', true)
+        const mixedUploadResult = await uploadImage(selectedMixedImageFile, currentClueId)
+        if (!mixedUploadResult) throw new Error('Error subiendo imagen')
+        imagePath = mixedUploadResult.storagePath
+        setUploadingState('mixed', false)
+        break
+    }
+
+    // Actualizar BD via RPC
+    const { data, error } = await supabase.rpc('update_clue_image', {
+      p_game_id: gameId!,
+      p_clue_id: currentClueId,
+      p_image_path: imagePath,
+      p_content_type: contentType,
+      p_image_alt: imageAlt,
+      p_question_text: questionText || null,
+    })
+
+    if (error) throw error
+
+    const result = data as any
+    if (!result.success) throw new Error(result.error)
+
+    // Limpiar archivo antiguo si existe
+    if (result.old_image_path) {
+      await deleteOldImage(result.old_image_path)
+    }
+
+    closeModal(editModal)
+    resetEditModal()
+  } catch (err) {
+    console.error('Error guardando pregunta:', err)
+    alert('Error: ' + err.message)
+  } finally {
+    saveQuestionBtn.disabled = false
+    saveQuestionBtn.textContent = 'Guardar'
+  }
+}
+
+function resetEditModal() {
+  currentEditType = 'text'
+  selectedImageFile = null
+  selectedMixedImageFile = null
+  currentEditingClueId = null
+
+  // Reset UI
+  setContentType('text')
+  questionInput.value = ''
+  imagePreview.style.display = 'none'
+  previewImg.src = ''
+  imageUploadZone.style.padding = '24px'
+  imageAltInput.value = ''
+  imageUploadError.textContent = ''
+  mixedImagePreview.style.display = 'none'
+  mixedPreviewImg.src = ''
+  mixedImageUploadZone.style.padding = '24px'
+  mixedImageAltInput.value = ''
+  mixedImageUploadError.textContent = ''
+  mixedQuestionInput.value = ''
+}
+
+function openEditModal() {
+  if (!currentClueId) return
+  const clue = clues.get(currentClueId)
+  if (!clue) return
+
+  currentEditingClueId = currentClueId
+  resetEditModal()
+
+  // Cargar datos existentes
+  const contentType = clue.content_type || 'text'
+  const questionText = clue.question_text || ''
+  const imagePath = clue.image_path
+  const imageAlt = clue.image_alt || ''
+
+  setContentType(contentType)
+
+  switch (contentType) {
+    case 'text':
+      questionInput.value = questionText
+      break
+
+    case 'image':
+      if (imagePath) {
+        const imageUrl = `https://wvaplnmcllwpioamgpct.supabase.co/storage/v1/object/public/question-images/${imagePath}`
+        previewImg.src = imageUrl
+        imagePreview.style.display = 'block'
+        imageUploadZone.style.padding = '12px'
+      }
+      imageAltInput.value = imageAlt
+      break
+
+    case 'mixed':
+      if (imagePath) {
+        const imageUrl = `https://wvaplnmcllwpioamgpct.supabase.co/storage/v1/object/public/question-images/${imagePath}`
+        mixedPreviewImg.src = imageUrl
+        mixedImagePreview.style.display = 'block'
+        mixedImageUploadZone.style.padding = '12px'
+      }
+      mixedImageAltInput.value = imageAlt
+      mixedQuestionInput.value = questionText
+      break
+  }
+
+  showModal(editModal)
+  questionInput.focus()
+}
+
 function showModal(modal: HTMLElement) {
   modal.hidden = false
   const input = modal.querySelector('input,textarea,select')
@@ -782,6 +1149,33 @@ function setupEventListeners() {
   })
 
   confirmRemoveTeamBtn.addEventListener('click', confirmRemoveTeam)
+
+  // Editor de contenido - selector de tipo
+  contentTypeBtns.forEach(btn => {
+    btn.addEventListener('click', () => setContentType(btn.dataset.type as 'text' | 'image' | 'mixed'))
+  })
+
+  // Drag & drop para imagen simple
+  setupImageUploadZone(imageUploadZone, imageFileInput, {
+    onFileSelect: (file) => handleImageFileSelect(file, 'image'),
+    onRemove: () => handleRemoveImage('image'),
+  })
+
+  // Drag & drop para imagen mixta
+  setupImageUploadZone(mixedImageUploadZone, mixedImageFileInput, {
+    onFileSelect: (file) => handleImageFileSelect(file, 'mixed'),
+    onRemove: () => handleRemoveImage('mixed'),
+  })
+
+  // Botones eliminar imagen
+  removeImageBtn.addEventListener('click', (e) => {
+    e.stopPropagation()
+    handleRemoveImage('image')
+  })
+  mixedRemoveImageBtn.addEventListener('click', (e) => {
+    e.stopPropagation()
+    handleRemoveImage('mixed')
+  })
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
