@@ -518,11 +518,11 @@ begin
     return jsonb_build_object('success', false, 'error', 'Partida no encontrada');
   end if;
 
-  -- Verificar dispositivo activo (auth.uid() = auth_user_id del equipo)
+  -- Verificar dispositivo activo (device_token único por dispositivo)
   select * into v_team from public.teams
-  where game_id = p_game_id and active_device_token = p_device_token and auth_user_id = auth.uid();
+  where game_id = p_game_id and active_device_token = p_device_token;
   if not found then
-    return jsonb_build_object('success', false, 'error', 'Dispositivo no autorizado o sesión reemplazada');
+    return jsonb_build_object('success', false, 'error', 'Dispositivo no registrado en esta partida');
   end if;
 
   if v_game.current_clue_id is null then

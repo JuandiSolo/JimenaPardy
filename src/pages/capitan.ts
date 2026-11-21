@@ -51,17 +51,41 @@ async function init() {
     return
   }
 
-  // 1. Auth anónimo (identidad de dispositivo) - SIEMPRE nuevo al recargar
+  // 1. Auth anónimo (identidad de dispositivo)
   const { error } = await supabase.auth.signInAnonymously()
   if (error) {
     loginError.textContent = 'Error de conexión: ' + error.message
     return
   }
 
-  // 2. NO auto-login: siempre mostrar pantalla de login al recargar
-  // Limpiar cualquier localStorage previo para forzar login fresco
-  localStorage.removeItem(`jimenapardy_team_${gameId}`)
+  // 2. Intentar auto-reconnect: si hay team guardado, validar con captain_login
+  const saved = localStorage.getItem(`jimenapardy_team_${gameId}`)
+  if (saved) {
+    try {
+      const { teamId, name, password } = JSON.parse(saved)
+      // Validar credenciales de nuevo (rápido, sin UI)
+      const { data, error } = await supabase.rpc('captain_login', {
+        p_game_id: gameId!,
+        p_name: name,
+        p_password: password
+      })
+      if (!error && data?.success) {
+        teamId = data.team_id
+        teamNameEl.textContent = name.toUpperCase()
+        teamScoreEl.textContent = data.score.toString()
+        await registerDevice()
+        setupEventListeners()
+        subscribeToGame()
+        await fetchInitialGameState()
+        enterGame()
+        return
+      }
+    } catch (e) {
+      console.log('Auto-reconnect failed, showing login:', e)
+    }
+  }
 
+  // 3. Fallback: mostrar login normal
   setupEventListeners()
   subscribeToGame()
   showLogin()
@@ -132,12 +156,13 @@ async function handleLogin() {
     return
   }
 
-  // Guardar equipo en localStorage
+  // Guardar equipo en localStorage (incluye password para auto-reconnect)
   teamId = result.team_id
   localStorage.setItem(`jimenapardy_team_${gameId}`, JSON.stringify({
     teamId: result.team_id,
     name: result.name,
-    score: result.score
+    score: result.score,
+    password: password
   }))
 
   teamNameEl.textContent = result.name.toUpperCase()
