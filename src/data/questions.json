@@ -4,7 +4,7 @@
     "Books in German",
     "3 \"T\"s",
     "Chop Chop!",
-    "They said it would not last"
+    "Club Penguin"
   ],
   "clues": [
     {
@@ -148,37 +148,37 @@
       "content_type": "text"
     },
     {
-      "category": "They said it would not last",
+      "category": "Club Penguin",
       "value": 200,
-      "question": "Beatles' first US #1 hit",
-      "answer": "I Want to Hold Your Hand",
+      "question": "El oso polar malvado",
+      "answer": "Herbert",
       "content_type": "text"
     },
     {
-      "category": "They said it would not last",
+      "category": "Club Penguin",
       "value": 400,
-      "question": "1990s boy band: 'Quit Playing Games'",
-      "answer": "Backstreet Boys",
+      "question": "Persona que debías derrotar para obtener el cinturón negro",
+      "answer": "El sensei",
       "content_type": "text"
     },
     {
-      "category": "They said it would not last",
+      "category": "Club Penguin",
       "value": 600,
-      "question": "Social media app with 140-char limit",
-      "answer": "Twitter",
+      "question": "Estructura encontrada en lo alto de la isla",
+      "answer": "El faro",
       "content_type": "text"
     },
     {
-      "category": "They said it would not last",
+      "category": "Club Penguin",
       "value": 800,
-      "question": "Video rental giant that refused Netflix",
-      "answer": "Blockbuster",
+      "question": "Año de lanzamiento de club penguin",
+      "answer": "2005",
       "content_type": "text"
     },
     {
-      "category": "They said it would not last",
+      "category": "Club Penguin",
       "value": 1000,
-      "question": "1980s 'pet' that was just a rock",
+      "question": "Color de puffle cuya descripción dice 'Aventurero y atrevido, le gustaba surfear'",
       "answer": "Pet Rock",
       "content_type": "text"
     }
