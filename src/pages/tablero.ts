@@ -133,7 +133,8 @@ function handleGameChange(payload: any) {
 
   if (phase === 'intro') {
     runIntroAnimation()
-  } else if (currentClueId && phase !== 'idle') {
+  } else if (currentClueId && phase !== 'idle' && phase !== 'chooseDouble' && phase !== 'awaitWager') {
+    // En Daily Double: NO mostrar pregunta hasta doubleReady (tras apuesta)
     showQuestion(currentClueId)
   } else {
     hideQuestion()

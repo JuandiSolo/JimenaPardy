@@ -276,6 +276,7 @@ function makeBoard() {
 
 function render() {
   const q = currentClueId ? clues.get(currentClueId) : null
+  const isDDWagerPhase = phase === 'chooseDouble' || phase === 'awaitWager'
 
   // Board tiles
   document.querySelectorAll('.tile').forEach(btn => {
@@ -302,10 +303,22 @@ function render() {
     doubleChip.hidden = !q.is_daily_double
     questionNumber.textContent = `Casilla ${q.column_index + 1} · $${q.value}`
 
-    const questionText = q.question_text || ''
-    questionDisplay.textContent = questionText || 'Pregunta pendiente: puedes escribirla con «Editar pregunta».'
-    questionDisplay.classList.toggle('empty', !questionText)
-    editQuestionBtn.disabled = false
+    if (isDDWagerPhase) {
+      // En DD: mostrar estado de apuesta, NO la pregunta
+      const dt = teams.get(doubleTeamId!)
+      if (phase === 'chooseDouble') {
+        questionDisplay.textContent = '★ DAILY DOUBLE — Elige el equipo que lo descubrió'
+      } else { // awaitWager
+        questionDisplay.textContent = dt ? `★ DAILY DOUBLE — ${dt.name} está apostando (max $${wagerCap})` : '★ DAILY DOUBLE — Esperando apuesta...'
+      }
+      questionDisplay.classList.add('empty')
+      editQuestionBtn.disabled = true
+    } else {
+      const questionText = q.question_text || ''
+      questionDisplay.textContent = questionText || 'Pregunta pendiente: puedes escribirla con «Editar pregunta».'
+      questionDisplay.classList.toggle('empty', !questionText)
+      editQuestionBtn.disabled = false
+    }
   } else {
     categoryChip.textContent = 'Sin seleccionar'
     valueChip.textContent = '$ —'
