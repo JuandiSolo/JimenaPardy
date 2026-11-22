@@ -1252,79 +1252,22 @@ async function handleLogin() {
     name: result.name
   }))
 
+  // 4. Poblar pistas con datos del JSON (después de login exitoso, ya tenemos moderator_id)
+  await populateCluesFromJSON()
+
   await registerModeratorDevice()
 }
 
-async function createNewGame() {
-  closeModal(newGameModal)
-  newGameError.textContent = 'Creando partida con preguntas predefinidas...'
+// Poblar pistas desde JSON estático (usado en handleLogin y createNewGame)
+async function populateCluesFromJSON() {
+  if (!gameId) return
 
-  // 1. Crear partida vacía (create_game inserta moderator_id = null)
-  const { data: newGameId, error: createError } = await supabase.rpc('create_game')
-  if (createError) {
-    newGameError.textContent = 'Error: ' + createError.message
-    return
-  }
-
-  gameId = newGameId as string
-  window.history.replaceState({}, '', `?game=${gameId}`)
-
-  // 2. IMPORTANTE: Establecer moderator_id ANTES de actualizar pistas (RLS lo requiere para clues_all_moderator)
-  const user = await getCurrentUser()
-  if (user) {
-    const { error: modError } = await supabase
-      .from('games')
-      .update({ moderator_id: user.id })
-      .eq('id', gameId)
-
-    if (modError) {
-      console.error('Error setting moderator_id:', modError)
-      newGameError.textContent = 'Error configurando moderador: ' + modError.message
-      return
-    }
-
-    // Verificar que se guardó
-    const { data: gameCheck } = await supabase.from('games').select('moderator_id').eq('id', gameId).single()
-    console.log('moderator_id after update:', gameCheck?.moderator_id, 'expected:', user.id)
-  }
-
-  // 3. DIAGNÓSTICO: Verificar qué pistas existen en la BD
-  console.log('=== DIAGNÓSTICO BD ===')
-  const { data: allClues, error: cluesError } = await supabase
-    .from('clues')
-    .select('column_index, value, question_text, is_daily_double')
-    .eq('game_id', gameId)
-    .order('column_index', { ascending: true })
-    .order('value', { ascending: true })
-
-  if (cluesError) {
-    console.error('Error fetching clues:', cluesError)
-  } else {
-    console.log('Pistas en BD:', allClues?.length || 0)
-    allClues?.forEach((c: any, i: number) => {
-      console.log(`  ${i+1}. col=${c.column_index} val=$${c.value} DD=${c.is_daily_double} q="${c.question_text?.substring(0,40) || '(vacía)'}"`)
-    })
-
-    // Agrupar por valor para ver qué tiers existen
-    const values = [...new Set(allClues?.map((c: any) => c.value) || [])].sort((a,b) => a-b)
-    console.log('Valores únicos en BD:', values)
-
-    if (values.length !== 5 || !values.includes(200)) {
-      console.error('❌ ESQUEMA ANTIGUO: Solo hay', values.length, 'valores, faltan $200')
-      newGameError.textContent = `❌ ESQUEMA ANTIGUO: BD tiene ${values.length} valores (${values.join(', ')}). Falta $200. Ejecuta migraciones 001_init.sql y 002_add_moderator_auth.sql ACTUALIZADAS.`
-      return
-    }
-  }
-
-  // 4. Poblar pistas con datos estáticos del JSON
+  console.log('=== POBLANDO PISTAS DESDE JSON ===')
   const cluesData = generateCluesForGame()
   const categories = getCategories()
   let updatedCount = 0
 
-  console.log('cluesData to update:', cluesData.map(c => ({ col: c.column_index, val: c.value, DD: c.is_daily_double })))
-
   for (const clue of cluesData) {
-    console.log('Updating clue:', { gameId, column_index: clue.column_index, value: clue.value })
     const { error, data } = await supabase
       .from('clues')
       .update({
@@ -1341,37 +1284,85 @@ async function createNewGame() {
 
     if (error) {
       console.error('Error updating clue:', clue, error)
-      newGameError.textContent = 'Error actualizando pistas: ' + error.message
-      return
+      throw error
     }
 
     if (data && data.length > 0) {
       updatedCount++
-      console.log('Updated:', data[0].id)
-    } else {
-      console.warn('No rows updated for clue:', { column_index: clue.column_index, value: clue.value })
     }
   }
 
-  console.log(`Updated ${updatedCount}/${cluesData.length} clues`)
+  console.log(`Pistas actualizadas: ${updatedCount}/${cluesData.length}`)
 
-  if (updatedCount === 0) {
-    newGameError.textContent = 'ADVERTENCIA: No se actualizó ninguna pista. ¿Ejecutaste las migraciones 001 y 002 actualizadas?'
-    return
-  }
-
-  // 5. Actualizar categorías en la partida
+  // Actualizar categorías en la partida
   const { error: catError } = await supabase
     .from('games')
     .update({ categories: categories })
     .eq('id', gameId)
 
-  if (catError) {
-    console.error('Error updating categories:', catError)
+  if (catError) console.error('Error updating categories:', catError)
+
+  // Recargar estado completo
+  await loadGame(gameId)
+}
+
+async function createNewGame() {
+  closeModal(newGameModal)
+  newGameError.textContent = 'Creando partida con preguntas predefinidas...'
+
+  // 1. Crear partida vacía (create_game inserta moderator_id = null)
+  const { data: newGameId, error: createError } = await supabase.rpc('create_game')
+  if (createError) {
+    newGameError.textContent = 'Error: ' + createError.message
+    return
   }
 
-  // 5. Recargar estado completo
-  await loadGame(gameId)
+  gameId = newGameId as string
+  window.history.replaceState({}, '', `?game=${gameId}`)
+
+  // 2. Establecer moderator_id (policy permite UPDATE cuando moderator_id IS NULL)
+  const user = await getCurrentUser()
+  if (user) {
+    const { error: modError } = await supabase
+      .from('games')
+      .update({ moderator_id: user.id })
+      .eq('id', gameId)
+
+    if (modError) {
+      console.error('Error setting moderator_id:', modError)
+      newGameError.textContent = 'Error configurando moderador: ' + modError.message
+      return
+    }
+  }
+
+  // 3. DIAGNÓSTICO: Verificar esquema de BD
+  const { data: allClues, error: cluesError } = await supabase
+    .from('clues')
+    .select('column_index, value, question_text, is_daily_double')
+    .eq('game_id', gameId)
+    .order('column_index', { ascending: true })
+    .order('value', { ascending: true })
+
+  if (cluesError) {
+    console.error('Error fetching clues:', cluesError)
+  } else {
+    const values = [...new Set(allClues?.map((c: any) => c.value) || [])].sort((a,b) => a-b)
+    console.log('Valores únicos en BD:', values)
+
+    if (values.length !== 5 || !values.includes(200)) {
+      console.error('❌ ESQUEMA ANTIGUO: Solo hay', values.length, 'valores, faltan $200')
+      newGameError.textContent = `❌ ESQUEMA ANTIGUO: BD tiene ${values.length} valores (${values.join(', ')}). Falta $200. Ejecuta migraciones 001_init.sql y 002_add_moderator_auth.sql ACTUALIZADAS.`
+      return
+    }
+  }
+
+  // 4. Poblar pistas desde JSON (función compartida)
+  try {
+    await populateCluesFromJSON()
+  } catch (err) {
+    console.error('Error poblando pistas:', err)
+    newGameError.textContent = 'Error actualizando pistas: ' + err.message
+  }
 }
 
 init()

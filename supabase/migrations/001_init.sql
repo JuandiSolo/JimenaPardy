@@ -98,7 +98,7 @@ create policy "games_insert_moderator" on public.games
   for insert with check (auth.uid() = moderator_id);
 
 create policy "games_update_moderator" on public.games
-  for update using (auth.uid() = moderator_id);
+  for update using (moderator_id IS NULL OR auth.uid() = moderator_id);
 
 -- Políticas: equipos
 -- Lectura pública (para tablero/moderador)
