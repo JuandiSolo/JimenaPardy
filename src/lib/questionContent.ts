@@ -48,9 +48,11 @@ export function renderQuestionContent(clue: ClueContent, options: RenderOptions 
   const interactiveStyle = interactive ? 'cursor: pointer;' : ''
   const clickHandler = interactive && onImageClick ? `onclick="this.dispatchEvent(new CustomEvent('question-image-click'))"` : ''
 
-  // Construir URL de imagen si existe (UUID en filename evita problemas de cache)
+  // Construir URL de imagen: local (/images/...) o Supabase Storage
   const imageUrl = clue.image_path
-    ? `https://wvaplnmcllwpioamgpct.supabase.co/storage/v1/object/public/question-images/${clue.image_path}`
+    ? (clue.image_path.startsWith('http') || clue.image_path.startsWith('/')
+      ? clue.image_path  // Ya es URL absoluta o ruta local /images/...
+      : `https://wvaplnmcllwpioamgpct.supabase.co/storage/v1/object/public/question-images/${clue.image_path}`)
     : null
 
   switch (clue.content_type) {
