@@ -1259,7 +1259,7 @@ async function createNewGame() {
   closeModal(newGameModal)
   newGameError.textContent = 'Creando partida con preguntas predefinidas...'
 
-  // 1. Crear partida vacía (el RPC ya establece moderator_id = auth.uid())
+  // 1. Crear partida vacía (create_game inserta moderator_id = null)
   const { data: newGameId, error: createError } = await supabase.rpc('create_game')
   if (createError) {
     newGameError.textContent = 'Error: ' + createError.message
@@ -1269,7 +1269,22 @@ async function createNewGame() {
   gameId = newGameId as string
   window.history.replaceState({}, '', `?game=${gameId}`)
 
-  // 2. DIAGNÓSTICO: Verificar qué pistas existen en la BD
+  // 2. IMPORTANTE: Establecer moderator_id ANTES de actualizar pistas (RLS lo requiere para clues_all_moderator)
+  const user = await getCurrentUser()
+  if (user) {
+    const { error: modError } = await supabase
+      .from('games')
+      .update({ moderator_id: user.id })
+      .eq('id', gameId)
+
+    if (modError) {
+      console.error('Error setting moderator_id:', modError)
+      newGameError.textContent = 'Error configurando moderador: ' + modError.message
+      return
+    }
+  }
+
+  // 3. DIAGNÓSTICO: Verificar qué pistas existen en la BD
   console.log('=== DIAGNÓSTICO BD ===')
   const { data: allClues, error: cluesError } = await supabase
     .from('clues')
