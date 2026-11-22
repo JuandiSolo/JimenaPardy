@@ -4,6 +4,8 @@ import path from 'path'
 
 // base solo en producción (GitHub Pages); en dev servimos desde /
 const isProd = process.env.NODE_ENV === 'production'
+// GitHub Pages repo name: https://juandisolo.github.io/JimenaPardy/
+const GITHUB_PAGES_BASE = '/JimenaPardy/'
 
 // Middleware para servir HTMLs en rutas limpias (/moderador, /tablero, /capitan) en dev
 function htmlMiddleware() {
@@ -51,7 +53,7 @@ function copyHtmlsToRoot() {
 }
 
 export default defineConfig({
-  base: isProd ? '/JimenaPardy/' : '/',
+  base: isProd ? GITHUB_PAGES_BASE : '/',
   build: {
     outDir: 'dist',
     rollupOptions: {
