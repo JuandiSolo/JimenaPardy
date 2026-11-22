@@ -623,16 +623,22 @@ function updateHint() {
 async function selectClue(clueId: string) {
   if (currentClueId) return
 
+  console.log('selectClue called with:', { gameId, clueId })
+  const clue = clues.get(clueId)
+  console.log('Clue from local map:', clue)
+
   const { data, error } = await supabase.rpc('select_clue', {
     p_game_id: gameId!,
     p_clue_id: clueId
   })
 
   if (error) {
+    console.error('select_clue error:', error)
     alert('Error: ' + error.message)
     return
   }
 
+  console.log('select_clue result:', data)
   // El estado se actualiza via Realtime
 }
 
@@ -1294,14 +1300,7 @@ async function populateCluesFromJSON() {
 
   console.log(`Pistas actualizadas: ${updatedCount}/${cluesData.length}`)
 
-  // Actualizar categorías en la partida
-  const { error: catError } = await supabase
-    .from('games')
-    .update({ categories: categories })
-    .eq('id', gameId)
-
-  if (catError) console.error('Error updating categories:', catError)
-
+  // Categorías están en tabla clues, no en games
   // Recargar estado completo
   await loadGame(gameId)
 }
