@@ -970,7 +970,7 @@ create trigger games_updated_at
 -- Grants explícitos
 grant usage on schema public to anon, authenticated;
 grant select on public.games, public.teams, public.clues, public.score_events, public.score_edits to anon, authenticated;
-grant update on public.teams to authenticated;
+grant update on public.games, public.teams, public.clues to authenticated;
 grant execute on function public.create_game to authenticated;
 grant execute on function public.captain_login to authenticated;
 grant execute on function public.select_clue to authenticated;

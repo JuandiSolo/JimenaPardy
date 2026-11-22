@@ -1259,7 +1259,7 @@ async function createNewGame() {
   closeModal(newGameModal)
   newGameError.textContent = 'Creando partida con preguntas predefinidas...'
 
-  // 1. Crear partida vacía
+  // 1. Crear partida vacía (el RPC ya establece moderator_id = auth.uid())
   const { data: newGameId, error: createError } = await supabase.rpc('create_game')
   if (createError) {
     newGameError.textContent = 'Error: ' + createError.message
@@ -1269,22 +1269,7 @@ async function createNewGame() {
   gameId = newGameId as string
   window.history.replaceState({}, '', `?game=${gameId}`)
 
-  // 2. IMPORTANTE: Establecer moderator_id ANTES de actualizar pistas (RLS lo requiere)
-  const user = await getCurrentUser()
-  if (user) {
-    const { error: modError } = await supabase
-      .from('games')
-      .update({ moderator_id: user.id })
-      .eq('id', gameId)
-
-    if (modError) {
-      console.error('Error setting moderator_id:', modError)
-      newGameError.textContent = 'Error configurando moderador: ' + modError.message
-      return
-    }
-  }
-
-  // 3. DIAGNÓSTICO: Verificar qué pistas existen en la BD
+  // 2. DIAGNÓSTICO: Verificar qué pistas existen en la BD
   console.log('=== DIAGNÓSTICO BD ===')
   const { data: allClues, error: cluesError } = await supabase
     .from('clues')
@@ -1317,7 +1302,10 @@ async function createNewGame() {
   const categories = getCategories()
   let updatedCount = 0
 
+  console.log('cluesData to update:', cluesData.map(c => ({ col: c.column_index, val: c.value, DD: c.is_daily_double })))
+
   for (const clue of cluesData) {
+    console.log('Updating clue:', { gameId, column_index: clue.column_index, value: clue.value })
     const { error, data } = await supabase
       .from('clues')
       .update({
@@ -1340,8 +1328,9 @@ async function createNewGame() {
 
     if (data && data.length > 0) {
       updatedCount++
+      console.log('Updated:', data[0].id)
     } else {
-      console.warn('No rows updated for clue:', clue.category, clue.value)
+      console.warn('No rows updated for clue:', { column_index: clue.column_index, value: clue.value })
     }
   }
 

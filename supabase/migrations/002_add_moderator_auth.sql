@@ -218,6 +218,6 @@ $$;
 
 grant usage on schema public to anon, authenticated;
 grant select on public.moderators to anon, authenticated;
-grant update on public.moderators to authenticated;
+grant update on public.games, public.moderators to authenticated;
 grant execute on function public.moderator_login to authenticated;
 grant execute on function public.register_moderator_device to authenticated;
