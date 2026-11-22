@@ -83,7 +83,7 @@
       "question": "All answers contain exactly 3 letter T's",
       "answer": "Test pattern",
       "content_type": "image",
-      "image_path": "/images/integrales_200.png",
+      "image_path": "https://juandisolo.github.io/JeopardyEvento/images/integrales_200.png",
       "image_alt": "Integrales 200"
     },
     {
@@ -92,7 +92,7 @@
       "question": "Capital of Japan",
       "answer": "Tokyo",
       "content_type": "image",
-      "image_path": "/images/integrales_400.jpg",
+      "image_path": "https://juandisolo.github.io/JeopardyEvento/images/integrales_400.png",
       "image_alt": "Integrales 400"
     },
     {
@@ -101,7 +101,7 @@
       "question": "Shakespeare play: \"The ... of Venice\"",
       "answer": "Merchant",
       "content_type": "image",
-      "image_path": "/images/integrales_600.jpg",
+      "image_path": "https://juandisolo.github.io/JeopardyEvento/images/integrales_600.png",
       "image_alt": "Integrales 600"
     },
     {
@@ -110,7 +110,7 @@
       "question": "Animal: striped big cat",
       "answer": "Tiger",
       "content_type": "image",
-      "image_path": "/images/integrales_800.jpg",
+      "image_path": "https://juandisolo.github.io/JeopardyEvento/images/integrales_800.png",
       "image_alt": "Integrales 800"
     },
     {
@@ -119,7 +119,7 @@
       "question": "Element #22: strong, light metal",
       "answer": "Titanium",
       "content_type": "image",
-      "image_path": "/images/integrales_1000.jpg",
+      "image_path": "https://juandisolo.github.io/JeopardyEvento/images/integrales_1000.png",
       "image_alt": "Integrales 1000"
     },
     {
