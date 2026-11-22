@@ -10,70 +10,70 @@
     {
       "category": "Dr House",
       "value": 200,
-      "question": "This citrus fruit shares its name with a color",
+      "question": "¿Que no es?",
       "answer": "Orange",
       "content_type": "text"
     },
     {
       "category": "Dr House",
       "value": 400,
-      "question": "Green vegetable that sounds like a gem",
+      "question": "Pareja toxica de house",
       "answer": "Kale",
       "content_type": "text"
     },
     {
       "category": "Dr House",
       "value": 600,
-      "question": "Red fruit that rhymes with 'very'",
+      "question": "Razon por la que House toma vicodin",
       "answer": "Cherry",
       "content_type": "text"
     },
     {
       "category": "Dr House",
       "value": 800,
-      "question": "Nut that sounds like 'pecan' but isn't",
+      "question": "¿House tiene hijos?",
       "answer": "Peanut",
       "content_type": "text"
     },
     {
       "category": "Dr House",
       "value": 1000,
-      "question": "Melon that rhymes with 'antelope'",
+      "question": "Numero de exesposas de Wilson",
       "answer": "Cantaloupe",
       "content_type": "text"
     },
     {
       "category": "NSFW",
       "value": 200,
-      "question": "\"Harry Potter und der Stein der Weisen\" - Original title?",
+      "question": "Significado de las cifras MILF",
       "answer": "Harry Potter and the Philosopher's Stone",
       "content_type": "text"
     },
     {
       "category": "NSFW",
       "value": 400,
-      "question": "\"Der Herr der Ringe\" - English title?",
+      "question": "Definición de una Bop",
       "answer": "The Lord of the Rings",
       "content_type": "text"
     },
     {
       "category": "NSFW",
       "value": 600,
-      "question": "\"Stolz und Vorurteil\" - Jane Austen classic?",
+      "question": "Es mas el de pokemon o el de one piece",
       "answer": "Pride and Prejudice",
       "content_type": "text"
     },
     {
       "category": "NSFW",
       "value": 800,
-      "question": "\"1984\" auf Deutsch?",
+      "question": "Definicion de water sports",
       "answer": "1984 (same title)",
       "content_type": "text"
     },
     {
       "category": "NSFW",
       "value": 1000,
-      "question": "\"Die Verwandlung\" - Kafka novella?",
+      "question": "Explica que es Vegetarian mode en los juegos",
       "answer": "The Metamorphosis",
       "content_type": "text"
     },
@@ -83,7 +83,7 @@
       "question": "All answers contain exactly 3 letter T's",
       "answer": "Test pattern",
       "content_type": "image",
-      "image_path": "/images/integrales_200.jpg",
+      "image_path": "/images/integrales_200.png",
       "image_alt": "Integrales 200"
     },
     {
@@ -132,28 +132,28 @@
     {
       "category": "My little pony",
       "value": 400,
-      "question": "Nombre del dragón bebé de Spike",
+      "question": "Que pony es el amor de Spike",
       "answer": "Peewee",
       "content_type": "text"
     },
     {
       "category": "My little pony",
       "value": 600,
-      "question": "Ciudad natal de Pinkie Pie",
+      "question": "Equipo aereo soñado de Rainbow Dash",
       "answer": "Rockville",
       "content_type": "text"
     },
     {
       "category": "My little pony",
       "value": 800,
-      "question": "Cutie Mark de Applejack",
+      "question": "Nombre del grupo formado por Apple Bloom. Sweetie Bell, Scootaloo para conseguir sus cutie marks",
       "answer": "Tres manzanas",
       "content_type": "text"
     },
     {
       "category": "My little pony",
       "value": 1000,
-      "question": "Nombre del hermano mayor de Twilight Sparkle",
+      "question": "Razon de destierro de Luna",
       "answer": "Shining Armor",
       "content_type": "text"
     },
