@@ -12,9 +12,7 @@
       "value": 200,
       "question": "This citrus fruit shares its name with a color",
       "answer": "Orange",
-      "content_type": "image",
-      "image_path": "/images/orange.jpg",
-      "image_alt": "An orange fruit"
+      "content_type": "text"
     },
     {
       "category": "Dr House",
@@ -28,20 +26,14 @@
       "value": 600,
       "question": "Red fruit that rhymes with 'very'",
       "answer": "Cherry",
-      "content_type": "image",
-      "image_path": "/images/cherry.jpg",
-      "image_alt": "Red cherries"
+      "content_type": "text"
     },
     {
       "category": "Dr House",
       "value": 800,
       "question": "Nut that sounds like 'pecan' but isn't",
       "answer": "Peanut",
-      "content_type": "mixed",
-      "question": "This legume grows underground, not on trees",
-      "answer": "Peanut",
-      "image_path": "/images/peanut.jpg",
-      "image_alt": "Peanuts in shell"
+      "content_type": "text"
     },
     {
       "category": "Dr House",
@@ -55,9 +47,7 @@
       "value": 200,
       "question": "\"Harry Potter und der Stein der Weisen\" - Original title?",
       "answer": "Harry Potter and the Philosopher's Stone",
-      "content_type": "image",
-      "image_path": "/images/harry_potter.jpg",
-      "image_alt": "Harry Potter book cover"
+      "content_type": "text"
     },
     {
       "category": "NSFW",
@@ -71,11 +61,7 @@
       "value": 600,
       "question": "\"Stolz und Vorurteil\" - Jane Austen classic?",
       "answer": "Pride and Prejudice",
-      "content_type": "mixed",
-      "question": "Mr. Darcy y Elizabeth Bennet en la portada",
-      "answer": "Pride and Prejudice",
-      "image_path": "/images/pride_prejudice.jpg",
-      "image_alt": "Pride and Prejudice cover"
+      "content_type": "text"
     },
     {
       "category": "NSFW",
@@ -89,16 +75,16 @@
       "value": 1000,
       "question": "\"Die Verwandlung\" - Kafka novella?",
       "answer": "The Metamorphosis",
-      "content_type": "image",
-      "image_path": "/images/metamorphosis.jpg",
-      "image_alt": "Kafka book cover"
+      "content_type": "text"
     },
     {
       "category": "Integrales",
       "value": 200,
       "question": "All answers contain exactly 3 letter T's",
       "answer": "Test pattern",
-      "content_type": "text"
+      "content_type": "image",
+      "image_path": "/images/integrales_200.jpg",
+      "image_alt": "Integrales 200"
     },
     {
       "category": "Integrales",
@@ -106,19 +92,17 @@
       "question": "Capital of Japan",
       "answer": "Tokyo",
       "content_type": "image",
-      "image_path": "/images/tokyo.jpg",
-      "image_alt": "Tokyo skyline"
+      "image_path": "/images/integrales_400.jpg",
+      "image_alt": "Integrales 400"
     },
     {
       "category": "Integrales",
       "value": 600,
       "question": "Shakespeare play: \"The ... of Venice\"",
       "answer": "Merchant",
-      "content_type": "mixed",
-      "question": "Shylock demanding his pound of flesh",
-      "answer": "Merchant",
-      "image_path": "/images/merchant_venice.jpg",
-      "image_alt": "Merchant of Venice scene"
+      "content_type": "image",
+      "image_path": "/images/integrales_600.jpg",
+      "image_alt": "Integrales 600"
     },
     {
       "category": "Integrales",
@@ -126,57 +110,51 @@
       "question": "Animal: striped big cat",
       "answer": "Tiger",
       "content_type": "image",
-      "image_path": "/images/tiger.jpg",
-      "image_alt": "Tiger in wild"
+      "image_path": "/images/integrales_800.jpg",
+      "image_alt": "Integrales 800"
     },
     {
       "category": "Integrales",
       "value": 1000,
       "question": "Element #22: strong, light metal",
       "answer": "Titanium",
-      "content_type": "text"
+      "content_type": "image",
+      "image_path": "/images/integrales_1000.jpg",
+      "image_alt": "Integrales 1000"
     },
     {
       "category": "My little pony",
       "value": 200,
-      "question": "Kitchen tool for chopping",
-      "answer": "Knife",
-      "content_type": "image",
-      "image_path": "/images/knife.jpg",
-      "image_alt": "Chef knife"
+      "question": "Elemento de la armonía de Rarity",
+      "answer": "Generosidad",
+      "content_type": "text"
     },
     {
       "category": "My little pony",
       "value": 400,
-      "question": "Woodcutter's tool",
-      "answer": "Axe",
+      "question": "Nombre del dragón bebé de Spike",
+      "answer": "Peewee",
       "content_type": "text"
     },
     {
       "category": "My little pony",
       "value": 600,
-      "question": "Haircut: short all around",
-      "answer": "Buzz cut",
-      "content_type": "mixed",
-      "question": "Military style haircut",
-      "answer": "Buzz cut",
-      "image_path": "/images/buzz_cut.jpg",
-      "image_alt": "Buzz cut haircut"
+      "question": "Ciudad natal de Pinkie Pie",
+      "answer": "Rockville",
+      "content_type": "text"
     },
     {
       "category": "My little pony",
       "value": 800,
-      "question": "Cooking technique: cut into small cubes",
-      "answer": "Dice",
-      "content_type": "image",
-      "image_path": "/images/dice.jpg",
-      "image_alt": "Diced vegetables"
+      "question": "Cutie Mark de Applejack",
+      "answer": "Tres manzanas",
+      "content_type": "text"
     },
     {
       "category": "My little pony",
       "value": 1000,
-      "question": "Martial arts board breaking demo",
-      "answer": "Karate chop",
+      "question": "Nombre del hermano mayor de Twilight Sparkle",
+      "answer": "Shining Armor",
       "content_type": "text"
     },
     {
@@ -184,29 +162,21 @@
       "value": 200,
       "question": "El oso polar malvado",
       "answer": "Herbert",
-      "content_type": "image",
-      "image_path": "/images/herbert.jpg",
-      "image_alt": "Herbert the polar bear"
+      "content_type": "text"
     },
     {
       "category": "Club Penguin",
       "value": 400,
       "question": "Persona que debías derrotar para obtener el cinturón negro",
       "answer": "El sensei",
-      "content_type": "mixed",
-      "question": "El sensei en el dojo de Card-Jitsu",
-      "answer": "El sensei",
-      "image_path": "/images/sensei.jpg",
-      "image_alt": "Sensei from Club Penguin"
+      "content_type": "text"
     },
     {
       "category": "Club Penguin",
       "value": 600,
       "question": "Estructura encontrada en lo alto de la isla",
       "answer": "El faro",
-      "content_type": "image",
-      "image_path": "/images/lighthouse.jpg",
-      "image_alt": "Club Penguin lighthouse"
+      "content_type": "text"
     },
     {
       "category": "Club Penguin",
@@ -220,9 +190,7 @@
       "value": 1000,
       "question": "Color de puffle cuya descripción dice 'Aventurero y atrevido, le gustaba surfear'",
       "answer": "Pet Rock",
-      "content_type": "image",
-      "image_path": "/images/pet_rock.jpg",
-      "image_alt": "Pet Rock puffle"
+      "content_type": "text"
     }
   ],
   "daily_double": {
