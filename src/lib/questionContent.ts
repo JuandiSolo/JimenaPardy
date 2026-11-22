@@ -71,7 +71,7 @@ export function renderQuestionContent(clue: ClueContent, options: RenderOptions 
       if (!imageUrl) {
         return `<div class="question-media mixed" style="width:${maxWidth};max-height:${maxHeight};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;">
           <div class="placeholder" style="${checkerboardStyle}width:100%;height:60%;display:flex;align-items:center;justify-content:center;color:var(--muted);">${interactive ? 'Click para añadir imagen' : 'Sin imagen'}</div>
-          <div class="question-text" style="width:100%;text-align:center;font-family:Anton,Impact,sans-serif;font-size:clamp(18px,3vw,28px);line-height:1.2;color:var(--gold-light);text-shadow:2px 2px #000;">${escapeHtml(clue.question_text) || '<span style="color:var(--muted)">Texto pendiente</span>'}</div>
+          <div class="question-text" style="width:100%;text-align:center;font-family:Anton,Impact,sans-serif;line-height:1.2;color:var(--gold-light);text-shadow:2px 2px #000;">${escapeHtml(clue.question_text) || '<span style="color:var(--muted)">Texto pendiente</span>'}</div>
         </div>`
       }
       const mixedImgErrorHandler = `this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%231a2a5a" width="100" height="100"/%3E%3Ctext x="50" y="55" font-size="12" fill="%23666" text-anchor="middle"%3EImagen no disponible%3C/text%3E%3C/svg%3E';this.alt='Imagen no cargada';`
@@ -80,7 +80,7 @@ export function renderQuestionContent(clue: ClueContent, options: RenderOptions 
           <div class="image-wrapper" style="width:100%;height:60%;${checkerboardStyle}display:flex;align-items:center;justify-content:center;overflow:hidden;${interactiveStyle}${clickHandler}" data-content-type="mixed-image">
             <img src="${imageUrl}" alt="${clue.image_alt || 'Pregunta'}" loading="lazy" onerror="${mixedImgErrorHandler}" style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;">
           </div>
-          <div class="question-text" style="width:100%;text-align:center;font-family:Anton,Impact,sans-serif;font-size:clamp(18px,3vw,28px);line-height:1.2;color:var(--gold-light);text-shadow:2px 2px #000;">${escapeHtml(clue.question_text) || '<span style="color:var(--muted)">Texto pendiente</span>'}</div>
+          <div class="question-text" style="width:100%;text-align:center;font-family:Anton,Impact,sans-serif;line-height:1.2;color:var(--gold-light);text-shadow:2px 2px #000;">${escapeHtml(clue.question_text) || '<span style="color:var(--muted)">Texto pendiente</span>'}</div>
         </div>
       `
 
@@ -88,7 +88,7 @@ export function renderQuestionContent(clue: ClueContent, options: RenderOptions 
     default:
       return `
         <div class="question-media text-only" style="width:${maxWidth};max-height:${maxHeight};display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;">
-          <div class="question-text" style="font-family:Anton,Impact,sans-serif;font-size:clamp(20px,3.5vw,32px);line-height:1.15;color:var(--gold-light);text-shadow:2px 2px #000;overflow-wrap:anywhere;">${escapeHtml(clue.question_text) || '<span style="color:var(--muted);font-family:Arial,sans-serif;font-size:16px;">Pregunta pendiente</span>'}</div>
+          <div class="question-text" style="font-family:Anton,Impact,sans-serif;line-height:1.15;color:var(--gold-light);text-shadow:2px 2px #000;overflow-wrap:anywhere;">${escapeHtml(clue.question_text) || '<span style="color:var(--muted);font-family:Arial,sans-serif;font-size:16px;">Pregunta pendiente</span>'}</div>
         </div>
       `
   }
