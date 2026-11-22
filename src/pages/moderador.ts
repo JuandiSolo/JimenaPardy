@@ -1282,6 +1282,10 @@ async function createNewGame() {
       newGameError.textContent = 'Error configurando moderador: ' + modError.message
       return
     }
+
+    // Verificar que se guardó
+    const { data: gameCheck } = await supabase.from('games').select('moderator_id').eq('id', gameId).single()
+    console.log('moderator_id after update:', gameCheck?.moderator_id, 'expected:', user.id)
   }
 
   // 3. DIAGNÓSTICO: Verificar qué pistas existen en la BD
